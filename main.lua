@@ -33,6 +33,9 @@ return function(mod)
     return mon or ctx.save.party[1]
   end)
 
+  -- QoL 1.3.0 also listens here at priority 0, but does not check whether
+  -- another listener has already opened a dialog. Let it act first.
+  -- availableFieldActions then returns no actions while its UI is open.
   mod.events:on("world.interacted", function(ctx)
     if ctx.kind ~= "none" or not game or not unlocked(game.save, "SURF") then
       return
@@ -51,7 +54,7 @@ return function(mod)
         return
       end
     end
-  end)
+  end, -100)
 
   mod.hooks:wrap("ui.start_menu.items", function(next, game, items)
     local out = next(game, items)

@@ -1,16 +1,16 @@
-# Field Moves — Red v0.2.0
+# Field Moves — Red v0.2.1
 
 Обновление Surf-прототипа. Поддерживается Pokémon Red, mod API 2.
 ID сохранён: surf_without_hm_red. Это замена v0.1.0, а не второй мод.
 
 ## Установка обновления
 
-В лаунчере MODS → Import mod .zip импортируйте surf_without_hm_red-v0.2.0.zip.
+В лаунчере MODS → Import mod .zip импортируйте surf_without_hm_red-v0.2.1.zip.
 Включите Field Moves - Red для Red и перезапустите игру.
 Если импорт предлагает заменить старую версию, выберите замену.
 При ручной установке замените main.lua, manifest.json и README_RU.md внутри
 прежней папки mods/surf_without_hm_red. Не создавайте вторую копию мода.
-Стандартный Windows-путь: %APPDATA%\LOVE\pokemon-love2d\mods\.
+Стандартный Windows-путь: %APPDATA%\pokemon-love2d\mods\.
 У portable-сборок и при переопределении identity каталог может отличаться.
 
 ## Surf: только взаимодействие с водой
@@ -79,3 +79,32 @@ https://github.com/bryanthaboi/gen1recomp/blob/e2114f7c85795d52903ea98deab493a4f
 https://github.com/bryanthaboi/gen1recomp/blob/e2114f7c85795d52903ea98deab493a4f181bace/src/ui/TownMap.lua
 https://github.com/bryanthaboi/gen1recomp/blob/e2114f7c85795d52903ea98deab493a4f181bace/src/render/TextBox.lua
 https://github.com/bryanthaboi/gen1recomp/wiki/Start-Playing
+
+## Исправление v0.2.1: совместимость с Quality of Life
+
+Проверена установленная Quality of Life 1.3.0:
+репозиторий unxpected-uxp/pokemon-gen1-recomp-mod-qol.
+Её меню SURF / USE GOOD ROD / CANCEL и наш текст SURF across? запускались
+по одному событию world.interacted. Наш запрос мог открыться первым, после
+чего QoL открывал своё меню поверх него, не проверяя занятость экрана.
+Выбор Surf запускал посадку, но наш старый вопрос оставался под меню.
+Это конфликт обработчиков, а не повторное предложение оригинальной Red.
+
+Наш обработчик теперь выполняется после обработчика QoL (приоритет -100).
+Если QoL открыл меню или начал посадку/рыбалку, штатный availableFieldActions
+возвращает пустой список и второй запрос не создаётся.
+
+При включённых водных взаимодействиях QoL остаётся его меню выбора.
+Если они выключены, наш мод по-прежнему предлагает SURF across? → YES / NO.
+Fly и требования HM/значков сохраняются. Настройки QoL мод не меняет.
+
+До исправления конфликт воспроизведён локально. После изменения пройдены
+54 проверки совместимости с настоящим модулем Easy Interactions из
+установленной QoL 1.3.0: оба порядка загрузки, SURF FIRST, FISH FIRST,
+SURF ONLY, OFF, отмена, рыбалка, посадка и повторное A во время плавания.
+Также повторно пройдены 33 проверки Surf/Fly. Анимации заменены контрольными
+вызовами; обновление требует проверки в запущенной игре.
+
+После обновления полностью перезапустите игру, чтобы убрать уже открытые
+старой версией окна. На берегу нажмите A → SURF: после текста посадки
+не должно быть второго вопроса. Проверьте также CANCEL и USE GOOD ROD.

@@ -1,7 +1,7 @@
 {
   "id": "surf_without_hm_red",
   "name": "Field Moves - Red",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
