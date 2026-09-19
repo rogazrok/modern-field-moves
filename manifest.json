@@ -1,7 +1,7 @@
 {
   "id": "surf_without_hm_red",
   "name": "Modern Field Moves",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",

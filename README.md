@@ -1,4 +1,4 @@
-# Modern Field Moves v1.1.0
+# Modern Field Moves v1.1.1
 
 Modern Field Moves — modern HM mechanics with the classic Pokémon feel.
 
@@ -7,7 +7,7 @@ on gen1recomp (Mod API 2). All five Gen 1 and seven Gen 2 HMs are supported.
 
 ## Install / update
 
-Import modern_field_moves-v1.1.0.zip through MODS → Import mod .zip, replacing
+Import modern_field_moves-v1.1.1.zip through MODS → Import mod .zip, replacing
 0.9.x. Enable Modern Field Moves for your game and restart the game completely.
 The legacy internal ID/folder surf_without_hm_red is retained to preserve settings.
 No new playthrough is required. engine_internals permission is required.
@@ -54,3 +54,5 @@ Future internal engine changes may require an adapter update.
 See README_RU.md, MANUAL_CHECKLIST_RU.md and RELEASE_REPORT_RU.md for details.
 
 FREE uses native location anchors, not full route polygons. Names appear at the markers; blank cells have no label. Coordinate-less caches fall back to CLASSIC. The setting takes effect on next map open. No full ROM visual validation was performed.
+
+1.1.1 fixes missing Kanto labels/Fly selection in FREE when HALL_OF_FAME is absent. Full-region hit-testing is independent from the native CLASSIC scroll range. Visited-flight restrictions are unchanged.

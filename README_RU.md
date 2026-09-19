@@ -1,4 +1,4 @@
-# Modern Field Moves v1.1.0
+# Modern Field Moves v1.1.1
 
 Modern Field Moves — modern HM mechanics with the classic Pokémon feel.
 
@@ -8,7 +8,7 @@ Gen 1 поддерживает пять HM; Gen 2 — все семь, вклю�
 
 ## Установка и обновление с 0.9.x
 
-1. Импортируйте `modern_field_moves-v1.1.0.zip` через MODS → Import mod .zip.
+1. Импортируйте `modern_field_moves-v1.1.1.zip` через MODS → Import mod .zip.
 2. Замените прежнюю версию, не создавая вторую копию.
 3. Выберите игру через Show for и включите Modern Field Moves.
 4. Полностью перезапустите игру. Используйте сохранение соответствующей версии.

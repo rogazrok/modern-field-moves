@@ -7,7 +7,18 @@ return function(mod)
       if map.mode ~= "grid" then return end -- old caches without coordinates
       for _, loc in ipairs(map.allLocs or map.locs) do entries[#entries+1] = loc end
     else
-      local last, first = map:cursorLimits()
+      -- cursorLimits is a story-gated CLASSIC scroll range, not the region:
+      -- without HALL_OF_FAME it excludes most Kanto cities and routes.
+      -- FREE hit-testing needs the entire displayed region. Fly permissions
+      -- remain independently checked against native visited destinations.
+      local first, last
+      if map:region() == "kanto" then
+        first=map:landmarkIndex("PALLET_TOWN",46)
+        last=map:landmarkIndex("ROUTE_28",93)
+      else
+        first=map:landmarkIndex("NEW_BARK_TOWN",1)
+        last=map:landmarkIndex("SILVER_CAVE",45)
+      end
       for _, loc in pairs((map.landmarks or {}).landmarks or {}) do
         if loc.index and loc.index >= first and loc.index <= last then entries[#entries+1] = loc end
       end
