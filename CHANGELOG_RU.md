@@ -1,4 +1,24 @@
-# Изменения Field Moves — RBY & Crystal
+# Изменения Modern Field Moves
+
+## v0.9.0 — Modern Field Moves, финальные настройки
+
+- Публичное название изменено на Modern Field Moves. Внутренний ID
+  surf_without_hm_red сохранён для обновления без сброса настроек.
+- FIELD MOVE USER: GENERIC по умолчанию, KNOWN MOVE с fallback на GENERIC,
+  FIRST PARTY. Сохранены обезличенные сообщения и штатные эффекты HM.
+- HM REQUIREMENT: добавлен UNRESTRICTED — debug/cheat option, отключающий
+  требования диска и значка только для полевых HM. HM + BADGE остаётся default,
+  BADGE ONLY сохранён. Реальные предметы, значки и сюжетные флаги не выдаются.
+- CONFIRM PROMPTS: ON по умолчанию; OFF пропускает подтверждения Cut, Surf,
+  Strength, Whirlpool и Waterfall при взаимодействии с подходящим объектом.
+- Подтверждение Fly обязательно всегда, в том числе при OFF + UNRESTRICTED.
+  Сохранены посещённые точки и ограничения мира. Карта всё ещё требует
+  настоящий Town Map / Map Card и сохраняет просмотр дорог после открытия Fly.
+- LIGHT MANUAL/AUTO и отдельный явный Flash в Ruins of Alph сохранены.
+- Старые настройки читаются без миграции и сброса; новое значение по умолчанию ON.
+- Поддерживаются только Red, Blue, Yellow и Crystal. Gold/Silver запланированы
+  для v1.0 и не включены в manifest v0.9.0.
+- 2518 локальных проверок. Полный игровой прогон с ROM не выполнялся.
 
 ## v0.8.1 — полная карта при открытом Fly
 

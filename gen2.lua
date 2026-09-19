@@ -16,6 +16,7 @@ return function(mod, policy, townMap, installLighting)
 
   local function unlocked(save, move)
     if not save then return false end
+    if policy.unrestricted() then return true end
     local id = items[move]
     -- HMs are reusable and cannot normally be tossed. Count both the bag
     -- and PC so depositing one does not remove the field ability.
@@ -40,6 +41,40 @@ return function(mod, policy, townMap, installLighting)
   end)
 
   local World = require("src.world.gen2.World")
+  -- Debug/cheat mode affects only HM decisions. Never grant actual badges:
+  -- native story scripts, trainer cards and save records see the real state.
+  local function copy(source)
+    local out = {}; for k, v in pairs(source or {}) do out[k] = v end; return out
+  end
+  for _, move in ipairs({ "CUT", "SURF", "STRENGTH", "FLASH", "FLY", "WHIRLPOOL", "WATERFALL" }) do
+    local title = move:sub(1,1) .. move:sub(2):lower()
+    for _, method in ipairs({ move:lower() .. "FromMenu", "try" .. title .. "OW" }) do
+      local original = FieldMoves[method]
+      if original then
+        FieldMoves[method] = function(ctx, ...)
+          if not policy.unrestricted() then return original(ctx, ...) end
+          local scoped = copy(ctx)
+          scoped.save = copy(ctx.save)
+          scoped.save.player = copy(scoped.save.player)
+          scoped.save.player.badges = copy(scoped.save.player.badges)
+          scoped.save.player.badges[FieldMoves.BADGE[move]] = true
+          return original(scoped, ...)
+        end
+        if method == move:lower() .. "FromMenu" then
+          FieldMoves.FROM_MENU[move] = FieldMoves[method]
+        end
+      end
+    end
+  end
+  local originalOverworld = World.runOverworldFieldMove
+  local contextual = { cut=true, surf=true, strength=true, whirlpool=true, waterfall=true }
+  World.runOverworldFieldMove = function(world, result)
+    if result and result.ok and contextual[result.action] and not policy.confirmPrompts() then
+      result = copy(result)
+      result.ask = nil
+    end
+    return originalOverworld(world, result)
+  end
   local originalUse = World.useFieldMove
   World.useFieldMove = function(world, move, mon)
     -- Crystal's party menu otherwise trusts a learned move and bypasses the

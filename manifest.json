@@ -1,12 +1,19 @@
 {
   "id": "surf_without_hm_red",
-  "name": "Field Moves - RBY & Crystal",
-  "version": "0.8.1",
+  "name": "Modern Field Moves",
+  "version": "0.9.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
-  "games": ["red", "blue", "yellow", "crystal"],
-  "permissions": ["engine_internals"],
-  "description": "HM field abilities without teaching for RBY and Crystal. Independent maps with confirmed flights; contextual LIGHT with MANUAL / AUTO cave lighting."
+  "games": [
+    "red",
+    "blue",
+    "yellow",
+    "crystal"
+  ],
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "Modern Field Moves — HM QoL for RBY & Crystal. UNRESTRICTED is a debug/cheat option."
 }

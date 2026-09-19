@@ -9,12 +9,17 @@ return function(mod)
     { key = "hm_requirement", type = "choice", label = "HM REQUIREMENT",
       default = "hm_badge", choices = {
         { "HM + BADGE", "hm_badge" }, { "BADGE ONLY", "badge_only" },
+        { "UNRESTRICTED", "unrestricted" },
       } },
     { key = "light_mode", type = "choice", label = "LIGHT MODE",
       default = "manual", choices = { { "MANUAL", "manual" }, { "AUTO", "auto" } } },
+    { key = "confirm_prompts", type = "choice", label = "CONFIRM PROMPTS",
+      default = "on", choices = { { "ON", "on" }, { "OFF", "off" } } },
   })
 
   local policy = {}
+  function policy.unrestricted() return mod.options:get("hm_requirement") == "unrestricted" end
+  function policy.confirmPrompts() return mod.options:get("confirm_prompts") ~= "off" end
   function policy.autoLight() return mod.options:get("light_mode") == "auto" end
   function policy.mode()
     local value = mod.options:get("field_move_user")

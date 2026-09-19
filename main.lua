@@ -13,7 +13,7 @@ return function(mod)
   assert(mod.world and type(mod.world.useFieldAction) == "function"
       and type(mod.world.availableFieldActions) == "function"
       and type(mod.world.flyTo) == "function",
-    "Field Moves Red requires gen1recomp's field-action and Fly APIs")
+    "Modern Field Moves requires gen1recomp's field-action and Fly APIs")
 
   local gates = {
     CUT = { badge = "CASCADEBADGE", item = "HM_CUT", flag = "EVENT_GOT_HM01" },
@@ -28,6 +28,7 @@ return function(mod)
 
   local function unlocked(save, move)
     if not save then return false end
+    if policy.unrestricted() then return policy.first(save.party) ~= nil end
     local gate = gates[move]
     local inventory = save.inventory or {}
     local badge = inventory[gate.badge]
@@ -77,6 +78,7 @@ return function(mod)
   end
 
   local function confirmAction(id, text)
+    if not policy.confirmPrompts() then return mod.world:useFieldAction(id) end
     game.stack:push(mod.ui.TextBox.new(game, text, nil, {
       choice = function(yes)
         -- TextBox closes both boxes before the API rechecks the action.
