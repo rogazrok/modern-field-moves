@@ -1,11 +1,11 @@
 {
   "id": "surf_without_hm_red",
-  "name": "Surf Without Teaching - Red",
-  "version": "0.1.0",
+  "name": "Field Moves - Red",
+  "version": "0.2.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
   "games": ["red"],
-  "description": "START > SURF after obtaining HM03 and Soul Badge, without teaching the move."
+  "description": "A at water for Surf; START > FLY with the native map. HM and badge progression required."
 }
