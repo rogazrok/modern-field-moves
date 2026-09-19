@@ -1,6 +1,6 @@
 -- Crystal adapter. Native A-button interactions already
 -- implement Cut, Surf, Strength, Whirlpool and Waterfall with their prompts.
-return function(mod, policy)
+return function(mod, policy, townMap)
   local FieldMoves = require("src.world.gen2.FieldMoves")
   local StartMenu = require("src.ui.gen2.StartMenu")
   local items = {
@@ -54,6 +54,11 @@ return function(mod, policy)
   end
   local originalRun = World.runFieldMove
   World.runFieldMove = function(world, result)
+    if result and result.action == "fly" and result.fieldMovesTownMap then
+      return townMap.crystal(world.game, world, result.mon, function()
+        return unlocked(world.game.save, "FLY") and firstPokemon(world.game.save.party) ~= nil
+      end)
+    end
     local move = result and type(result.action) == "string" and result.action:upper()
     if not items[move] or move == "FLY" then return originalRun(world, result) end
     -- Copy the action, not the Pokemon. Preserve every native effect parameter
@@ -82,11 +87,12 @@ return function(mod, policy)
       world:showText("No destination\nfor FLY yet.")
       return
     end
-    -- The same queue as the native party menu: FLY opens the native
-    -- Pokegear fly map and FLASH keeps Crystal's Ruins of Alph wall logic.
+    -- The same queue as the native party menu: TOWN MAP opens the native
+    -- Pokegear map with confirmation; FLASH keeps the Ruins of Alph wall logic.
     -- Do not probe availableFieldActions here: its Flash availability check
     -- can itself invoke the Aerodactyl-wall callback in this engine version.
-    world:useFieldMove(move, mon)
+    local result = world:useFieldMove(move, mon)
+    if move == "FLY" and result and result.ok then result.fieldMovesTownMap = true end
   end
 
   mod.hooks:wrap("ui.start_menu.items", function(next, game, rows)
@@ -95,8 +101,8 @@ return function(mod, policy)
     for _, move in ipairs({ "FLY", "FLASH" }) do
       if unlocked(game.save, move) and firstPokemon(game.save.party) then
         mod.ui.insertBefore(out, "SAVE", {
-          label = move,
-          desc = move == "FLY" and { "Fly to a", "visited town." }
+          label = move == "FLY" and "TOWN MAP" or move,
+          desc = move == "FLY" and { "Choose a town", "on the map." }
             or { "Light a", "dark cave." },
           onSelect = function() useFromStart(game, move) end,
         })

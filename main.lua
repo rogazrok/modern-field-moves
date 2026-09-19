@@ -4,10 +4,11 @@ return function(mod)
     return assert(compile(assert(mod:read(file)), "@" .. mod.path .. "/" .. file))()
   end
   local policy = module("field_user.lua")(mod)
+  local townMap = module("town_map.lua")(mod)
   -- Gen 2 owns A-button field interactions and uses a different save/menu
   -- model. Keep the tested Gen 1 implementation isolated from that adapter.
   if require("src.core.GameVersion").generation() == 2 then
-    return module("gen2.lua")(mod, policy)
+    return module("gen2.lua")(mod, policy, townMap)
   end
   assert(mod.world and type(mod.world.useFieldAction) == "function"
       and type(mod.world.availableFieldActions) == "function"
@@ -126,19 +127,10 @@ return function(mod)
     if type(out) ~= "table" then return out end
     if unlocked(game.save, "FLY") then
       mod.ui.insertBefore(out, "SAVE", {
-      label = "FLY",
+      label = "TOWN MAP",
       -- Menu closes itself before onSelect, so the world API is not busy.
       onSelect = function()
-        if not mod.world:canFly() then
-          game.stack:push(mod.ui.TextBox.new(game, "Can't FLY here!"))
-          return
-        end
-        mod.ui.push(game, "TownMap", { fly = true, onFly = function(mapId)
-          local ok = mod.world:flyTo(mapId)
-          if not ok then
-            game.stack:push(mod.ui.TextBox.new(game, "Can't FLY here!"))
-          end
-        end })
+        townMap.red(game)
       end,
     })
     end
