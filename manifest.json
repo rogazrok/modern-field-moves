@@ -1,11 +1,11 @@
 {
   "id": "surf_without_hm_red",
   "name": "Field Moves - Red",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
   "games": ["red"],
-  "description": "All five Red HMs without teaching: Cut/Surf interactions and Fly/Strength/Flash in START. Each needs its HM and badge."
+  "description": "All five Red HMs without teaching: Cut/Surf/Strength interactions and Fly/Flash in START. Each needs its HM and badge."
 }

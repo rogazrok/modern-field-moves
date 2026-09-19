@@ -47,6 +47,24 @@ return function(mod)
     }))
   end
 
+  -- world.talk runs before the ordinary boulder text. Only claim a real
+  -- pushable object when the native API currently offers Strength.
+  -- This mirrors Red's Map.isPushable definition without a private require.
+  mod.hooks:wrap("world.talk", function(next, ow, target)
+    local def = target and target.def
+    local pushable = def and (def.pushable == true
+      or (def.pushable == nil and def.sprite == "SPRITE_BOULDER"))
+    if game and pushable and unlocked(game.save, "STRENGTH") then
+      for _, action in ipairs(mod.world:availableFieldActions()) do
+        if action.id == "strength" then
+          confirmAction("strength", "Use STRENGTH?")
+          return
+        end
+      end
+    end
+    return next(ow, target)
+  end)
+
   -- QoL 1.3.0 also listens here at priority 0, but does not check whether
   -- another listener has already opened a dialog. Let it act first.
   -- availableFieldActions then returns no actions while its UI is open.
@@ -89,9 +107,8 @@ return function(mod)
       end,
     })
     end
-    -- These native actions need no destination picker. The API rejects
-    -- Flash outside darkness and Strength when it is already active.
-    for _, move in ipairs({ "STRENGTH", "FLASH" }) do
+    -- Flash stays in START; Strength is an A-button boulder interaction.
+    for _, move in ipairs({ "FLASH" }) do
       if unlocked(game.save, move) then
         local id = move:lower()
         mod.ui.insertBefore(out, "SAVE", {
