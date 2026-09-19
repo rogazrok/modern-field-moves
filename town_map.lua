@@ -12,7 +12,7 @@ return function(mod)
       or owns(save.inventory, "TOWN_MAP") or owns(save.pcItems, "TOWN_MAP"))
   end
 
-  function maps.hasCrystalMap(game)
+  function maps.hasGen2Map(game)
     local save = game and game.save
     if not save then return false end
     local world = game.world
@@ -66,8 +66,8 @@ return function(mod)
     return map
   end
 
-  function maps.crystal(game, world, mon, unlocked)
-    if not maps.hasCrystalMap(game) then return false end
+  function maps.gen2(game, world, mon, unlocked)
+    if not maps.hasGen2Map(game) then return false end
     local FieldMoves = require("src.world.gen2.FieldMoves")
     local points = world:flyPoints()
     local canTravel = #points > 0 and unlocked() and mon ~= nil

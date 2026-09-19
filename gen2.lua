@@ -1,4 +1,4 @@
--- Crystal adapter. Native A-button interactions already
+-- Shared Gold/Silver/Crystal adapter. Native A-button interactions already
 -- implement Cut, Surf, Strength, Whirlpool and Waterfall with their prompts.
 return function(mod, policy, townMap, installLighting)
   local FieldMoves = require("src.world.gen2.FieldMoves")
@@ -52,6 +52,12 @@ return function(mod, policy, townMap, installLighting)
       local original = FieldMoves[method]
       if original then
         FieldMoves[method] = function(ctx, ...)
+          -- The shared engine exposes Crystal's wall callback in G/S too.
+          -- Gold/Silver Flash only illuminates darkness; never set Crystal events.
+          if move == "FLASH" and require("src.core.GameVersion").get() ~= "crystal" then
+            ctx = copy(ctx)
+            ctx.openAerodactylWall = nil
+          end
           if not policy.unrestricted() then return original(ctx, ...) end
           local scoped = copy(ctx)
           scoped.save = copy(ctx.save)
@@ -112,7 +118,7 @@ return function(mod, policy, townMap, installLighting)
     if not world or not world:acceptsMenuInput() then return end
     if move == "LIGHT" then return light.manual(game) end
     if move == "FLY" then
-      return townMap.crystal(game, world, policy.user(game.save.party, "FLY"), function()
+      return townMap.gen2(game, world, policy.user(game.save.party, "FLY"), function()
         return unlocked(game.save, "FLY") and firstPokemon(game.save.party) ~= nil
       end)
     end
@@ -130,7 +136,7 @@ return function(mod, policy, townMap, installLighting)
     local out = next(game, rows)
     if type(out) ~= "table" then return out end
     for _, move in ipairs({ "FLY", "LIGHT", "FLASH" }) do
-      if (move == "FLY" and townMap.hasCrystalMap(game))
+      if (move == "FLY" and townMap.hasGen2Map(game))
           or (move == "LIGHT" and light.visible(game))
           or (move == "FLASH" and light.special(game) and unlocked(game.save, move) and firstPokemon(game.save.party)) then
         mod.ui.insertBefore(out, "SAVE", {
