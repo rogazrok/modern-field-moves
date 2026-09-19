@@ -40,27 +40,30 @@ return function(mod)
 
   function maps.red(game)
     if not maps.hasRedMap(game.save) then return end
-    if not mod.world:canFly() then
-      return mod.ui.push(game, "TownMap", {})
-    end
-    local parent = game.stack:top()
-    local map
-    map = mod.ui.push(game, "TownMap", { fly = true, onFly = function(id)
-      -- Gen 1's native picker pops itself before onFly. Restore that same
-      -- instance so the confirmation is over the map and NO keeps its cursor.
-      if not map or game.stack:top() ~= parent then return end
-      game.stack:push(map)
-      for index, candidate in ipairs(map.flyMapIds or {}) do
-        if candidate == id then
-          local loc = map.locs and map.locs[index]
-          confirm(game, map, (loc and loc.name) or id:gsub("_", " "), function()
-            -- The API rechecks requirements, outdoor source and visited towns.
-            return mod.world:flyTo(id)
-          end)
-          return
+    local map = mod.ui.push(game, "TownMap", {})
+    -- Keep the viewer's complete location list and native route-name banner.
+    -- Ask the native picker for destinations, but never display that picker.
+    local picker = mod.world:canFly()
+      and require("src.ui.TownMap").new(game, { fly = true })
+    map.travelPoints = picker and picker.flyMapIds or {}
+    local update = map.update
+    map.update = function(self, dt)
+      local input = game.input
+      if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
+        local loc = self.locs[self.sel]
+        for _, id in ipairs(self.travelPoints) do
+          if loc and self.byMap[id] == loc then
+            confirm(game, self, loc.name, function()
+              -- API rechecks requirements, outdoor source and visited towns.
+              return mod.world:flyTo(id)
+            end)
+            return
+          end
         end
       end
-    end })
+      return update(self, dt)
+    end
+    return map
   end
 
   function maps.crystal(game, world, mon, unlocked)
@@ -72,7 +75,6 @@ return function(mod)
     local map
     map = mod.ui.push(game, "Gen2Pokegear", {
       save = game.save, currentLandmark = world:currentLandmarkId(),
-      fly = canTravel and points or nil, flyMon = canTravel and mon or nil,
       townMap = true,
       onFly = function(spawn)
         if not canTravel or not map or game.stack:top() ~= map then return end
@@ -100,6 +102,21 @@ return function(mod)
         if map and game.stack:top() == map then game.stack:pop() end
       end,
     })
+    map.travelPoints = canTravel and points or {}
+    local update = map.update
+    map.update = function(self, dt)
+      local input = game.input
+      if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
+        local index = self:mapCursorIndex()
+        for _, row in ipairs(self.travelPoints) do
+          if row.index == index then
+            self.onFly(row.spawn)
+            return
+          end
+        end
+      end
+      return update(self, dt)
+    end
     return true
   end
 
