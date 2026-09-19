@@ -1,6 +1,6 @@
 -- Crystal adapter. Native A-button interactions already
 -- implement Cut, Surf, Strength, Whirlpool and Waterfall with their prompts.
-return function(mod, policy, townMap)
+return function(mod, policy, townMap, installLighting)
   local FieldMoves = require("src.world.gen2.FieldMoves")
   local StartMenu = require("src.ui.gen2.StartMenu")
   local items = {
@@ -28,6 +28,7 @@ return function(mod, policy, townMap)
       if not mon.egg then return mon end
     end
   end
+  local light = installLighting(mod, policy, 2, unlocked)
 
   mod.hooks:wrap("fieldmove.eligibility", function(next, moveId, ctx)
     local mon, slot = next(moveId, ctx)
@@ -74,6 +75,7 @@ return function(mod, policy, townMap)
     menu:close()
     local world = game.world
     if not world or not world:acceptsMenuInput() then return end
+    if move == "LIGHT" then return light.manual(game) end
     if move == "FLY" then
       return townMap.crystal(game, world, policy.user(game.save.party, "FLY"), function()
         return unlocked(game.save, "FLY") and firstPokemon(game.save.party) ~= nil
@@ -92,14 +94,15 @@ return function(mod, policy, townMap)
   mod.hooks:wrap("ui.start_menu.items", function(next, game, rows)
     local out = next(game, rows)
     if type(out) ~= "table" then return out end
-    for _, move in ipairs({ "FLY", "FLASH" }) do
+    for _, move in ipairs({ "FLY", "LIGHT", "FLASH" }) do
       if (move == "FLY" and townMap.hasCrystalMap(game))
-          or (move == "FLASH" and unlocked(game.save, move) and firstPokemon(game.save.party)) then
+          or (move == "LIGHT" and light.visible(game))
+          or (move == "FLASH" and light.special(game) and unlocked(game.save, move) and firstPokemon(game.save.party)) then
         mod.ui.insertBefore(out, "SAVE", {
           -- Crystal allows seven label tiles and ten per description line.
           label = move == "FLY" and "MAP" or move,
           desc = move == "FLY" and { "View the", "map." }
-            or { "Light a", "dark cave." },
+            or (move == "LIGHT" and { "Light the", "cave." } or { "Use FLASH", "here." }),
           onSelect = function() useFromStart(game, move) end,
         })
       end

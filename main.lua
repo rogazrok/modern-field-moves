@@ -8,7 +8,7 @@ return function(mod)
   -- Gen 2 owns A-button field interactions and uses a different save/menu
   -- model. Keep the tested Gen 1 implementation isolated from that adapter.
   if require("src.core.GameVersion").generation() == 2 then
-    return module("gen2.lua")(mod, policy, townMap)
+    return module("gen2.lua")(mod, policy, townMap, module("lighting.lua"))
   end
   assert(mod.world and type(mod.world.useFieldAction) == "function"
       and type(mod.world.availableFieldActions) == "function"
@@ -38,6 +38,8 @@ return function(mod)
       or (type(hm) == "number" and hm > 0)
     return hasBadge and (hasHM or policy.badgeOnly()) and policy.first(save.party) ~= nil
   end
+
+  local light = module("lighting.lua")(mod, policy, 1, unlocked)
 
   mod.hooks:wrap("fieldmove.eligibility", function(next, moveId, ctx)
     local mon, slot = next(moveId, ctx)
@@ -134,21 +136,13 @@ return function(mod)
       end,
     })
     end
-    -- Flash stays in START; Strength is an A-button boulder interaction.
-    for _, move in ipairs({ "FLASH" }) do
-      if unlocked(game.save, move) then
-        local id = move:lower()
+    if light.visible(game) then
         mod.ui.insertBefore(out, "SAVE", {
-          label = move,
+          label = "LIGHT",
           onSelect = function()
-            local ok = mod.world:useFieldAction(id)
-            if not ok then
-              game.stack:push(mod.ui.TextBox.new(game,
-                "Can't use " .. move .. "\nhere now!"))
-            end
+            light.manual(game)
           end,
         })
-      end
     end
     return out
   end)

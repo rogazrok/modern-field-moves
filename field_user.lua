@@ -10,9 +10,12 @@ return function(mod)
       default = "hm_badge", choices = {
         { "HM + BADGE", "hm_badge" }, { "BADGE ONLY", "badge_only" },
       } },
+    { key = "light_mode", type = "choice", label = "LIGHT MODE",
+      default = "manual", choices = { { "MANUAL", "manual" }, { "AUTO", "auto" } } },
   })
 
   local policy = {}
+  function policy.autoLight() return mod.options:get("light_mode") == "auto" end
   function policy.mode()
     local value = mod.options:get("field_move_user")
     if value == "known_move" or value == "first_party" then return value end
