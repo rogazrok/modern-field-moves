@@ -1,5 +1,5 @@
 -- Native regional maps plus a standard YES/NO prompt. No custom destinations.
-return function(mod)
+return function(mod, installCursor)
   local maps = {}
 
   local function owns(store, item)
@@ -46,11 +46,15 @@ return function(mod)
     local picker = mod.world:canFly()
       and require("src.ui.TownMap").new(game, { fly = true })
     map.travelPoints = picker and picker.flyMapIds or {}
+    installCursor(map, 1)
     local update = map.update
     map.update = function(self, dt)
       local input = game.input
+      if self.freeCursor and not input:wasPressed("b") then
+        if self:moveFreeCursor(input) then return end
+      end
       if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
-        local loc = self.locs[self.sel]
+        local loc = self.freeCursor and self.hoverLocation or self.locs[self.sel]
         for _, id in ipairs(self.travelPoints) do
           if loc and self.byMap[id] == loc then
             confirm(game, self, loc.name, function()
@@ -103,9 +107,13 @@ return function(mod)
       end,
     })
     map.travelPoints = canTravel and points or {}
+    installCursor(map, 2)
     local update = map.update
     map.update = function(self, dt)
       local input = game.input
+      if self.freeCursor and not input:wasPressed("b") then
+        if self:moveFreeCursor(input) then return end
+      end
       if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
         local index = self:mapCursorIndex()
         for _, row in ipairs(self.travelPoints) do

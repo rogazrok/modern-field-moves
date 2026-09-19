@@ -15,6 +15,8 @@ return function(mod)
       default = "manual", choices = { { "MANUAL", "manual" }, { "AUTO", "auto" } } },
     { key = "confirm_prompts", type = "choice", label = "CONFIRM PROMPTS",
       default = "on", choices = { { "ON", "on" }, { "OFF", "off" } } },
+    { key = "map_cursor", type = "choice", label = "MAP CURSOR",
+      default = "free", choices = { { "FREE", "free" }, { "CLASSIC", "classic" } } },
   })
 
   local policy = {}

@@ -4,7 +4,7 @@ return function(mod)
     return assert(compile(assert(mod:read(file)), "@" .. mod.path .. "/" .. file))()
   end
   local policy = module("field_user.lua")(mod)
-  local townMap = module("town_map.lua")(mod)
+  local townMap = module("town_map.lua")(mod, module("map_cursor.lua")(mod))
   -- Gen 2 owns A-button field interactions and uses a different save/menu
   -- model. Keep the tested Gen 1 implementation isolated from that adapter.
   if require("src.core.GameVersion").generation() == 2 then
