@@ -17,5 +17,6 @@
   "permissions": [
     "engine_internals"
   ],
+  "github": "rogazrok/modern-field-moves",
   "description": "Modern Field Moves — modern HM mechanics with the classic Pokémon feel."
 }
