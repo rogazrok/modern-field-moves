@@ -1,0 +1,11 @@
+{
+  "id": "surf_without_hm_red",
+  "name": "Surf Without Teaching - Red",
+  "version": "0.1.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "GAMEPLAY",
+  "games": ["red"],
+  "description": "START > SURF after obtaining HM03 and Soul Badge, without teaching the move."
+}
