@@ -125,7 +125,7 @@ return function(mod)
   mod.hooks:wrap("ui.start_menu.items", function(next, game, items)
     local out = next(game, items)
     if type(out) ~= "table" then return out end
-    if unlocked(game.save, "FLY") then
+    if townMap.hasRedMap(game.save) then
       mod.ui.insertBefore(out, "SAVE", {
       label = "TOWN MAP",
       -- Menu closes itself before onSelect, so the world API is not busy.

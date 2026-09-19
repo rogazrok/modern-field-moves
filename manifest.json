@@ -1,12 +1,12 @@
 {
   "id": "surf_without_hm_red",
   "name": "Field Moves - RBY & Crystal",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
   "games": ["red", "blue", "yellow", "crystal"],
   "permissions": ["engine_internals"],
-  "description": "HM field abilities without teaching for RBY and Crystal. TOWN MAP with confirmed flights, Flash in START, configurable users and HM requirements."
+  "description": "HM field abilities without teaching for RBY and Crystal. Independently unlocked Town Map / Map Card; confirmed flights when Fly requirements are met."
 }

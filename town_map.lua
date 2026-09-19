@@ -2,6 +2,25 @@
 return function(mod)
   local maps = {}
 
+  local function owns(store, item)
+    local count = store and store[item]
+    return type(count) == "number" and count > 0
+  end
+
+  function maps.hasRedMap(save)
+    return save ~= nil and ((save.flags or {}).EVENT_GOT_TOWN_MAP == true
+      or owns(save.inventory, "TOWN_MAP") or owns(save.pcItems, "TOWN_MAP"))
+  end
+
+  function maps.hasCrystalMap(game)
+    local save = game and game.save
+    if not save then return false end
+    local world = game.world
+    local id = world and world.engineFlagId and world:engineFlagId("ENGINE_MAP_CARD", 1) or 1
+    return (save.engineFlags or {})[id] == true
+      or (save.pokegearFlags or {}).map == true
+  end
+
   local function confirm(game, map, name, travel)
     if game.stack:top() ~= map then return end
     name = tostring(name):gsub("[\n\v\f]", " ")
@@ -20,9 +39,9 @@ return function(mod)
   end
 
   function maps.red(game)
+    if not maps.hasRedMap(game.save) then return end
     if not mod.world:canFly() then
-      game.stack:push(mod.ui.TextBox.new(game, "Can't FLY here!"))
-      return
+      return mod.ui.push(game, "TownMap", {})
     end
     local parent = game.stack:top()
     local map
@@ -45,15 +64,18 @@ return function(mod)
   end
 
   function maps.crystal(game, world, mon, unlocked)
+    if not maps.hasCrystalMap(game) then return false end
     local FieldMoves = require("src.world.gen2.FieldMoves")
     local points = world:flyPoints()
-    if #points == 0 or not unlocked() then return false end
+    local canTravel = #points > 0 and unlocked() and mon ~= nil
+      and world:acceptsMenuInput() and FieldMoves.flyFromMenu(world:fieldContext(mon)).ok
     local map
     map = mod.ui.push(game, "Gen2Pokegear", {
       save = game.save, currentLandmark = world:currentLandmarkId(),
-      fly = points, flyMon = mon,
+      fly = canTravel and points or nil, flyMon = canTravel and mon or nil,
+      townMap = true,
       onFly = function(spawn)
-        if not map or game.stack:top() ~= map then return end
+        if not canTravel or not map or game.stack:top() ~= map then return end
         for _, row in ipairs(points) do
           if row.spawn == spawn then
             confirm(game, map, row.name or row.landmark, function()
