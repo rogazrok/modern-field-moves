@@ -5,6 +5,22 @@ Modern Field Moves — modern HM mechanics with the classic Pokémon feel.
 HM and field-move QoL for Pokémon Red, Blue, Yellow, Gold, Silver and Crystal
 on gen1recomp (Mod API 2). All five Gen 1 and seven Gen 2 HMs are supported.
 
+## ⚠️ Compatibility & Testing Notice
+
+Modern Field Moves modifies field-move logic and interacts with parts of the game's world and progression systems.
+
+The mod has been tested in all supported games, including new and existing save files, but it has not been exhaustively tested across every story event or edge case.
+
+Compatibility with other mods has also not been extensively tested. Mods that modify field moves, the START menu, Town Map / Pokégear map, Flash/lighting, world interactions, or related game logic may conflict with Modern Field Moves.
+
+Keeping a backup of your save file is recommended when using mods.
+
+If you encounter a bug, please report it through GitHub Issues and include:
+- game/version;
+- gen1recomp version;
+- other installed mods;
+- what happened and how to reproduce it.
+
 ## Install / update
 
 Import modern_field_moves-v1.1.1.zip through MODS → Import mod .zip, replacing
