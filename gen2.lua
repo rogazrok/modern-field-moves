@@ -101,8 +101,9 @@ return function(mod, policy, townMap)
     for _, move in ipairs({ "FLY", "FLASH" }) do
       if unlocked(game.save, move) and firstPokemon(game.save.party) then
         mod.ui.insertBefore(out, "SAVE", {
-          label = move == "FLY" and "TOWN MAP" or move,
-          desc = move == "FLY" and { "Choose a town", "on the map." }
+          -- Crystal allows seven label tiles and ten per description line.
+          label = move == "FLY" and "MAP" or move,
+          desc = move == "FLY" and { "Choose a", "town." }
             or { "Light a", "dark cave." },
           onSelect = function() useFromStart(game, move) end,
         })
