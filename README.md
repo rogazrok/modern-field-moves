@@ -5,6 +5,11 @@ Modern Field Moves — modern HM mechanics with the classic Pokémon feel.
 HM and field-move QoL for Pokémon Red, Blue, Yellow, Gold, Silver and Crystal
 on gen1recomp (Mod API 2). All five Gen 1 and seven Gen 2 HMs are supported.
 
+## Credits
+
+**Author & Design:** rogazrok  
+**Development assistance:** ChatGPT (OpenAI)
+
 ## ⚠️ Compatibility & Testing Notice
 
 Modern Field Moves modifies field-move logic and interacts with parts of the game's world and progression systems.
