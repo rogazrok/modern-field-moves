@@ -5,8 +5,12 @@ return function(mod)
     "Field Moves Red requires gen1recomp's field-action and Fly APIs")
 
   local gates = {
+    CUT = { badge = "CASCADEBADGE", item = "HM_CUT", flag = "EVENT_GOT_HM01" },
     SURF = { badge = "SOULBADGE", item = "HM_SURF", flag = "EVENT_GOT_HM03" },
     FLY = { badge = "THUNDERBADGE", item = "HM_FLY", flag = "EVENT_GOT_HM02" },
+    STRENGTH = { badge = "RAINBOWBADGE", item = "HM_STRENGTH", flag = "EVENT_GOT_HM04" },
+    FLASH = { badge = "BOULDERBADGE", item = "HM_FLASH", flag = "EVENT_GOT_HM05",
+      legacyFlag = "EVENT_GOT_HM_FLASH" },
   }
   local game
   mod.events:on("game.ready", function(ctx) game = ctx.game end)
@@ -19,6 +23,7 @@ return function(mod)
     local hasBadge = badge == true or (type(badge) == "number" and badge > 0)
     local hm = inventory[gate.item]
     local hasHM = (save.flags or {})[gate.flag] == true
+      or (gate.legacyFlag and (save.flags or {})[gate.legacyFlag] == true)
       or (type(hm) == "number" and hm > 0)
     return hasBadge and hasHM and (save.party or {})[1] ~= nil
   end
@@ -33,24 +38,31 @@ return function(mod)
     return mon or ctx.save.party[1]
   end)
 
+  local function confirmAction(id, text)
+    game.stack:push(mod.ui.TextBox.new(game, text, nil, {
+      choice = function(yes)
+        -- TextBox closes both boxes before the API rechecks the action.
+        if yes then mod.world:useFieldAction(id) end
+      end,
+    }))
+  end
+
   -- QoL 1.3.0 also listens here at priority 0, but does not check whether
   -- another listener has already opened a dialog. Let it act first.
   -- availableFieldActions then returns no actions while its UI is open.
   mod.events:on("world.interacted", function(ctx)
-    if ctx.kind ~= "none" or not game or not unlocked(game.save, "SURF") then
+    if ctx.kind ~= "none" or not game then
       return
     end
     for _, action in ipairs(mod.world:availableFieldActions()) do
+      if action.id == "cut" and unlocked(game.save, "CUT") then
+        confirmAction("cut", "Use CUT?")
+        return
+      end
       -- LEAVE WATER is the same action id; only offer boarding here.
-      if action.id == "surf" and action.label == "SURF" then
-        game.stack:push(mod.ui.TextBox.new(game,
-          "The water is calm.\nSURF across?", nil, {
-            choice = function(yes)
-              -- TextBox closes both prompt and choice before this callback.
-              -- The API rechecks terrain, progress and busy state.
-              if yes then mod.world:useFieldAction("surf") end
-            end,
-          }))
+      if action.id == "surf" and action.label == "SURF"
+          and unlocked(game.save, "SURF") then
+        confirmAction("surf", "The water is calm.\nSURF across?")
         return
       end
     end
@@ -58,8 +70,9 @@ return function(mod)
 
   mod.hooks:wrap("ui.start_menu.items", function(next, game, items)
     local out = next(game, items)
-    if type(out) ~= "table" or not unlocked(game.save, "FLY") then return out end
-    return mod.ui.insertBefore(out, "SAVE", {
+    if type(out) ~= "table" then return out end
+    if unlocked(game.save, "FLY") then
+      mod.ui.insertBefore(out, "SAVE", {
       label = "FLY",
       -- Menu closes itself before onSelect, so the world API is not busy.
       onSelect = function()
@@ -75,5 +88,24 @@ return function(mod)
         end })
       end,
     })
+    end
+    -- These native actions need no destination picker. The API rejects
+    -- Flash outside darkness and Strength when it is already active.
+    for _, move in ipairs({ "STRENGTH", "FLASH" }) do
+      if unlocked(game.save, move) then
+        local id = move:lower()
+        mod.ui.insertBefore(out, "SAVE", {
+          label = move,
+          onSelect = function()
+            local ok = mod.world:useFieldAction(id)
+            if not ok then
+              game.stack:push(mod.ui.TextBox.new(game,
+                "Can't use " .. move .. "\nhere now!"))
+            end
+          end,
+        })
+      end
+    end
+    return out
   end)
 end
