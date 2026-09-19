@@ -1,4 +1,12 @@
 return function(mod)
+  -- Gen 2 owns A-button field interactions and uses a different save/menu
+  -- model. Keep the tested Gen 1 implementation isolated from that adapter.
+  if require("src.core.GameVersion").generation() == 2 then
+    local source = assert(mod:read("gen2.lua"))
+    local compile = loadstring or load
+    local entry = assert(compile(source, "@" .. mod.path .. "/gen2.lua"))()
+    return entry(mod)
+  end
   assert(mod.world and type(mod.world.useFieldAction) == "function"
       and type(mod.world.availableFieldActions) == "function"
       and type(mod.world.flyTo) == "function",

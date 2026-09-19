@@ -1,11 +1,12 @@
 {
   "id": "surf_without_hm_red",
-  "name": "Field Moves - Red, Blue & Yellow",
-  "version": "0.3.3",
+  "name": "Field Moves - RBY & Crystal",
+  "version": "0.4.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
-  "games": ["red", "blue", "yellow"],
-  "description": "All five Gen 1 HMs without teaching: Cut/Surf/Strength interactions and Fly/Flash in START. Each needs its HM and badge."
+  "games": ["red", "blue", "yellow", "crystal"],
+  "permissions": ["engine_internals"],
+  "description": "HM field abilities without teaching for RBY and Crystal, including Whirlpool and Waterfall. Each requires its HM and badge. Fly/Flash in START."
 }
