@@ -1,11 +1,13 @@
 return function(mod)
+  local compile = loadstring or load
+  local function module(file)
+    return assert(compile(assert(mod:read(file)), "@" .. mod.path .. "/" .. file))()
+  end
+  local policy = module("field_user.lua")(mod)
   -- Gen 2 owns A-button field interactions and uses a different save/menu
   -- model. Keep the tested Gen 1 implementation isolated from that adapter.
   if require("src.core.GameVersion").generation() == 2 then
-    local source = assert(mod:read("gen2.lua"))
-    local compile = loadstring or load
-    local entry = assert(compile(source, "@" .. mod.path .. "/gen2.lua"))()
-    return entry(mod)
+    return module("gen2.lua")(mod, policy)
   end
   assert(mod.world and type(mod.world.useFieldAction) == "function"
       and type(mod.world.availableFieldActions) == "function"
@@ -33,18 +35,43 @@ return function(mod)
     local hasHM = (save.flags or {})[gate.flag] == true
       or (gate.legacyFlag and (save.flags or {})[gate.legacyFlag] == true)
       or (type(hm) == "number" and hm > 0)
-    return hasBadge and hasHM and (save.party or {})[1] ~= nil
+    return hasBadge and (hasHM or policy.badgeOnly()) and policy.first(save.party) ~= nil
   end
 
   mod.hooks:wrap("fieldmove.eligibility", function(next, moveId, ctx)
-    local mon = next(moveId, ctx)
-    if not gates[moveId] then return mon end
+    local mon, slot = next(moveId, ctx)
+    if not gates[moveId] then return mon, slot end
     -- Keep the requested progression gate even for an imported Surf knower.
     if not unlocked(ctx.save, moveId) then return nil end
     -- Native Surf needs a real party mon for its name, not a boolean.
     -- No species restriction, move edits, PP changes, or HP requirement.
-    return mon or ctx.save.party[1]
+    return policy.user(ctx.save.party, moveId)
   end)
+
+  -- Only the native field entry points see these text replacements. Battle
+  -- text, move learning, and the save's party are never modified.
+  local Overworld = require("src.world.OverworldController")
+  local textMethods = {
+    tryCut = { move = "CUT", key = "_UsedCutText" },
+    trySurf = { move = "SURF", key = "_SurfingGotOnText" },
+    useStrengthFieldMove = { move = "STRENGTH", key = "_UsedStrengthText" },
+    useFlashFieldMove = { move = "FLASH", key = "_FlashLightsAreaText" },
+  }
+  for method, info in pairs(textMethods) do
+    local original = Overworld[method]
+    Overworld[method] = function(ow, ...)
+      local activeGame = game or mod.game
+      if not activeGame then return original(ow, ...) end
+      local replacements = { [info.key] = policy.message(activeGame, info.move) }
+      if info.move == "STRENGTH" then
+        replacements._CanMoveBouldersText = policy.boulders(activeGame)
+        local _, onClose = ...
+        return policy.withTexts(activeGame, replacements, original, ow,
+          policy.user(activeGame.save.party, "STRENGTH"), onClose)
+      end
+      return policy.withTexts(activeGame, replacements, original, ow, ...)
+    end
+  end
 
   local function confirmAction(id, text)
     game.stack:push(mod.ui.TextBox.new(game, text, nil, {

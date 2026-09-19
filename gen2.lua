@@ -1,6 +1,6 @@
 -- Crystal adapter. Native A-button interactions already
 -- implement Cut, Surf, Strength, Whirlpool and Waterfall with their prompts.
-return function(mod)
+return function(mod, policy)
   local FieldMoves = require("src.world.gen2.FieldMoves")
   local StartMenu = require("src.ui.gen2.StartMenu")
   local items = {
@@ -19,7 +19,7 @@ return function(mod)
     local id = items[move]
     -- HMs are reusable and cannot normally be tossed. Count both the bag
     -- and PC so depositing one does not remove the field ability.
-    return (owns(save.inventory, id) or owns(save.pcItems, id))
+    return (owns(save.inventory, id) or owns(save.pcItems, id) or policy.badgeOnly())
       and FieldMoves.hasBadge(save, FieldMoves.BADGE[move])
   end
 
@@ -34,13 +34,37 @@ return function(mod)
     if not items[moveId] then return mon, slot end
     local save = (ctx and ctx.save) or (mod.game and mod.game.save)
     if not unlocked(save, moveId) then return nil end
-    if mon and not mon.egg then return mon, slot end
     local party = (ctx and ctx.party) or (save and save.party)
-    for index, candidate in ipairs(party or {}) do
-      if not candidate.egg then return candidate, index end
-    end
-    return nil
+    return policy.user(party, moveId)
   end)
+
+  local World = require("src.world.gen2.World")
+  local originalUse = World.useFieldMove
+  World.useFieldMove = function(world, move, mon)
+    -- Crystal's party menu otherwise trusts a learned move and bypasses the
+    -- eligibility hook. Apply the same selected requirement on that route.
+    if items[move] and world.map and world.player and not world.battleActive
+        and not world:busy() and not unlocked(world.game.save, move) then
+      local text = not FieldMoves.hasBadge(world.game.save, FieldMoves.BADGE[move])
+        and FieldMoves.TEXT.BADGE_REQUIRED or "An HM is required\nto use this."
+      world:showText(text)
+      return { ok = false, text = text }
+    end
+    return originalUse(world, move, mon)
+  end
+  local originalRun = World.runFieldMove
+  World.runFieldMove = function(world, result)
+    local move = result and type(result.action) == "string" and result.action:upper()
+    if not items[move] or move == "FLY" then return originalRun(world, result) end
+    -- Copy the action, not the Pokemon. Preserve every native effect parameter
+    -- and delayed callback; only the presentation and chosen user change.
+    local presented = {}
+    for key, value in pairs(result) do presented[key] = value end
+    presented.mon = policy.user(world.game.save.party, move)
+    presented.text = policy.message(world.game, move)
+    if move == "STRENGTH" then presented.after = policy.boulders(world.game) end
+    return originalRun(world, presented)
+  end
 
   local function useFromStart(game, move)
     -- Gen 2, unlike Gen 1, keeps START open before calling onSelect.

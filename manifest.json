@@ -1,12 +1,12 @@
 {
   "id": "surf_without_hm_red",
   "name": "Field Moves - RBY & Crystal",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
   "games": ["red", "blue", "yellow", "crystal"],
   "permissions": ["engine_internals"],
-  "description": "HM field abilities without teaching for RBY and Crystal, including Whirlpool and Waterfall. Each requires its HM and badge. Fly/Flash in START."
+  "description": "HM field abilities without teaching for RBY and Crystal. Generic or named users; HM + badge by default, optional badge only. Fly/Flash in START."
 }
