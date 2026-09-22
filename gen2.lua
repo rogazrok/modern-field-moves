@@ -20,15 +20,10 @@ return function(mod, policy, townMap, installLighting)
     local id = items[move]
     -- HMs are reusable and cannot normally be tossed. Count both the bag
     -- and PC so depositing one does not remove the field ability.
-    return (owns(save.inventory, id) or owns(save.pcItems, id) or policy.badgeOnly())
-      and FieldMoves.hasBadge(save, FieldMoves.BADGE[move])
+    return policy.hmAllowed(owns(save.inventory, id) or owns(save.pcItems, id),
+      FieldMoves.hasBadge(save, FieldMoves.BADGE[move]))
   end
 
-  local function firstPokemon(party)
-    for _, mon in ipairs(party or {}) do
-      if not mon.egg then return mon end
-    end
-  end
   local light = installLighting(mod, policy, 2, unlocked)
 
   mod.hooks:wrap("fieldmove.eligibility", function(next, moveId, ctx)
@@ -43,8 +38,18 @@ return function(mod, policy, townMap, installLighting)
   local World = require("src.world.gen2.World")
   -- Debug/cheat mode affects only HM decisions. Never grant actual badges:
   -- native story scripts, trainer cards and save records see the real state.
-  local function copy(source)
+  local function shallowCopy(source)
     local out = {}; for k, v in pairs(source or {}) do out[k] = v end; return out
+  end
+  local function badgeContext(ctx, move)
+    -- A copied save branch gives native eligibility its required badge. The
+    -- synthetic badge never enters the real save, even if native code errors.
+    local scoped = shallowCopy(ctx)
+    scoped.save = shallowCopy(ctx.save)
+    scoped.save.player = shallowCopy(scoped.save.player)
+    scoped.save.player.badges = shallowCopy(scoped.save.player.badges)
+    scoped.save.player.badges[FieldMoves.BADGE[move]] = true
+    return scoped
   end
   for _, move in ipairs({ "CUT", "SURF", "STRENGTH", "FLASH", "FLY", "WHIRLPOOL", "WATERFALL" }) do
     local title = move:sub(1,1) .. move:sub(2):lower()
@@ -55,16 +60,11 @@ return function(mod, policy, townMap, installLighting)
           -- The shared engine exposes Crystal's wall callback in G/S too.
           -- Gold/Silver Flash only illuminates darkness; never set Crystal events.
           if move == "FLASH" and require("src.core.GameVersion").get() ~= "crystal" then
-            ctx = copy(ctx)
+            ctx = shallowCopy(ctx)
             ctx.openAerodactylWall = nil
           end
           if not policy.unrestricted() then return original(ctx, ...) end
-          local scoped = copy(ctx)
-          scoped.save = copy(ctx.save)
-          scoped.save.player = copy(scoped.save.player)
-          scoped.save.player.badges = copy(scoped.save.player.badges)
-          scoped.save.player.badges[FieldMoves.BADGE[move]] = true
-          return original(scoped, ...)
+          return original(badgeContext(ctx, move), ...)
         end
         if method == move:lower() .. "FromMenu" then
           FieldMoves.FROM_MENU[move] = FieldMoves[method]
@@ -73,10 +73,9 @@ return function(mod, policy, townMap, installLighting)
     end
   end
   local originalOverworld = World.runOverworldFieldMove
-  local contextual = { cut=true, surf=true, strength=true, whirlpool=true, waterfall=true }
   World.runOverworldFieldMove = function(world, result)
-    if result and result.ok and contextual[result.action] and not policy.confirmPrompts() then
-      result = copy(result)
+    if result and result.ok and not policy.confirmContext(result.action) then
+      result = shallowCopy(result)
       result.ask = nil
     end
     return originalOverworld(world, result)
@@ -100,8 +99,7 @@ return function(mod, policy, townMap, installLighting)
     if not items[move] or move == "FLY" then return originalRun(world, result) end
     -- Copy the action, not the Pokemon. Preserve every native effect parameter
     -- and delayed callback; only the presentation and chosen user change.
-    local presented = {}
-    for key, value in pairs(result) do presented[key] = value end
+    local presented = shallowCopy(result)
     presented.mon = policy.user(world.game.save.party, move)
     presented.text = policy.message(world.game, move)
     if move == "STRENGTH" then presented.after = policy.boulders(world.game) end
@@ -119,7 +117,7 @@ return function(mod, policy, townMap, installLighting)
     if move == "LIGHT" then return light.manual(game) end
     if move == "FLY" then
       return townMap.gen2(game, world, policy.user(game.save.party, "FLY"), function()
-        return unlocked(game.save, "FLY") and firstPokemon(game.save.party) ~= nil
+        return unlocked(game.save, "FLY") and policy.first(game.save.party) ~= nil
       end)
     end
     if not unlocked(game.save, move) then return end
@@ -138,7 +136,7 @@ return function(mod, policy, townMap, installLighting)
     for _, move in ipairs({ "FLY", "LIGHT", "FLASH" }) do
       if (move == "FLY" and townMap.hasGen2Map(game))
           or (move == "LIGHT" and light.visible(game))
-          or (move == "FLASH" and light.special(game) and unlocked(game.save, move) and firstPokemon(game.save.party)) then
+          or (move == "FLASH" and light.special(game) and unlocked(game.save, move) and policy.first(game.save.party)) then
         mod.ui.insertBefore(out, "SAVE", {
           -- Crystal allows seven label tiles and ten per description line.
           label = move == "FLY" and "MAP" or move,

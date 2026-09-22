@@ -1,7 +1,7 @@
 {
   "id": "surf_without_hm_red",
   "name": "Modern Field Moves",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -17,6 +17,11 @@
   "permissions": [
     "engine_internals"
   ],
+
   "github": "rogazrok/modern-field-moves",
   "description": "Modern Field Moves — modern HM mechanics with the classic Pokémon feel."
+
+  "description": "Modern Field Moves — modern HM mechanics with the classic Pokémon feel.",
+  "github": "rogazrok/modern-field-moves"
+(Release v1.1.2)
 }

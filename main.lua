@@ -37,7 +37,7 @@ return function(mod)
     local hasHM = (save.flags or {})[gate.flag] == true
       or (gate.legacyFlag and (save.flags or {})[gate.legacyFlag] == true)
       or (type(hm) == "number" and hm > 0)
-    return hasBadge and (hasHM or policy.badgeOnly()) and policy.first(save.party) ~= nil
+    return policy.hmAllowed(hasHM, hasBadge) and policy.first(save.party) ~= nil
   end
 
   local light = module("lighting.lua")(mod, policy, 1, unlocked)
@@ -78,7 +78,7 @@ return function(mod)
   end
 
   local function confirmAction(id, text)
-    if not policy.confirmPrompts() then return mod.world:useFieldAction(id) end
+    if not policy.confirmContext(id) then return mod.world:useFieldAction(id) end
     game.stack:push(mod.ui.TextBox.new(game, text, nil, {
       choice = function(yes)
         -- TextBox closes both boxes before the API rechecks the action.
@@ -108,19 +108,20 @@ return function(mod)
   -- QoL 1.3.0 also listens here at priority 0, but does not check whether
   -- another listener has already opened a dialog. Let it act first.
   -- availableFieldActions then returns no actions while its UI is open.
+  local interactions = {
+    cut = { move = "CUT", prompt = "Use CUT?" },
+    -- LEAVE WATER shares this id; only offer the boarding action.
+    surf = { move = "SURF", label = "SURF", prompt = "The water is calm.\nSURF across?" },
+  }
   mod.events:on("world.interacted", function(ctx)
     if ctx.kind ~= "none" or not game then
       return
     end
     for _, action in ipairs(mod.world:availableFieldActions()) do
-      if action.id == "cut" and unlocked(game.save, "CUT") then
-        confirmAction("cut", "Use CUT?")
-        return
-      end
-      -- LEAVE WATER is the same action id; only offer boarding here.
-      if action.id == "surf" and action.label == "SURF"
-          and unlocked(game.save, "SURF") then
-        confirmAction("surf", "The water is calm.\nSURF across?")
+      local interaction = interactions[action.id]
+      if interaction and (not interaction.label or action.label == interaction.label)
+          and unlocked(game.save, interaction.move) then
+        confirmAction(action.id, interaction.prompt)
         return
       end
     end

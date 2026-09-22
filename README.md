@@ -1,9 +1,12 @@
-# Modern Field Moves v1.1.1
+# Modern Field Moves v1.1.2
 
-Modern Field Moves — modern HM mechanics with the classic Pokémon feel.
+Modern Field Moves brings modern HM mechanics to Pokémon Red, Blue, Yellow,
+Gold, Silver and Crystal on gen1recomp while keeping the games' classic feel.
+Field moves work without teaching them to a Pokémon. The default requirement
+remains the appropriate HM and badge.
 
-HM and field-move QoL for Pokémon Red, Blue, Yellow, Gold, Silver and Crystal
-on gen1recomp (Mod API 2). All five Gen 1 and seven Gen 2 HMs are supported.
+## Installation and updates
+
 
 ## ⚠️ Compatibility & Testing Notice
 
@@ -23,42 +26,52 @@ If you encounter a bug, please report it through GitHub Issues and include:
 
 ## Install / update
 
-Import modern_field_moves-v1.1.1.zip through MODS → Import mod .zip, replacing
-0.9.x. Enable Modern Field Moves for your game and restart the game completely.
-The legacy internal ID/folder surf_without_hm_red is retained to preserve settings.
-No new playthrough is required. engine_internals permission is required.
+Import `modern_field_moves-v1.1.2.zip` through **MODS → Import mod .zip**,
+enable the mod for your game, and restart the game. To install manually,
+place the `surf_without_hm_red` folder in gen1recomp's `mods` folder.
+Keep this folder name and mod ID when updating: they preserve existing settings.
+Existing game saves do not need to be restarted. The mod requires API 2 and
+the `engine_internals` permission.
+ (Release v1.1.2)
 
-## Options
+## Field moves and maps
 
-- MAP CURSOR: FREE (default), CLASSIC.
-- FIELD MOVE USER: GENERIC (default), KNOWN MOVE, FIRST PARTY.
-- HM REQUIREMENT: HM + BADGE (default), BADGE ONLY, UNRESTRICTED.
-- LIGHT MODE: MANUAL (default), AUTO.
-- CONFIRM PROMPTS: ON (default), OFF.
+Cut, Surf and Strength are contextual interactions. Gold, Silver and Crystal
+also support Whirlpool and Waterfall. Fly is part of the map, not a separate
+START item. RBY's TOWN MAP appears after obtaining Daisy's Town Map; G/S/C's
+MAP appears after obtaining the Pokégear Map Card. Both maps can be browsed
+before Fly is unlocked. Fly requires the selected HM requirement and still
+uses the game's visited-destination restrictions and a YES/NO confirmation.
 
-UNRESTRICTED is a debug/cheat option that bypasses only HM/badge requirements.
-It does not grant map ownership, badges, items or visited destinations.
-GENERIC uses anonymous messages; KNOWN MOVE uses a learned move's user or falls
-back to GENERIC; FIRST PARTY names the first non-egg party member.
-Native effects still require a real party member internally.
+The MAP CURSOR setting offers FREE (four-direction cursor, default) and
+CLASSIC (native location cycling). FREE names locations at their native
+landmark anchors; empty map cells have no name. B exits the map.
 
-## Map, travel and light
+LIGHT appears only in dark areas and disappears after illumination. AUTO
+lights ordinary dark areas when available. Crystal's Aerodactyl wall remains
+a separate, explicit FLASH interaction and is never triggered by AUTO.
 
-TOWN MAP in RBY requires Daisy's Town Map, including when deposited in the PC.
-MAP in G/S/C requires the Guide Gent's Pokégear Map Card. Maps work without Fly
-and keep route/city browsing after Fly unlocks. FREE uses all four directions with hold-to-repeat; CLASSIC cycles locations with up/down. B closes, A on
-a valid visited destination asks for flight confirmation. Fly always requires
-YES/NO, even with confirmation OFF. Native travel restrictions remain in force.
+## Settings
 
-LIGHT appears only in real darkness and disappears after illumination. AUTO
-lights a dark area when the player is ready, without repeated activation.
-Crystal's Aerodactyl wall uses a separate explicit FLASH action; AUTO never
-triggers it. Gold/Silver do not receive this Crystal-only puzzle callback.
+| Setting | Choices | Default |
+| --- | --- | --- |
+| FIELD MOVE USER | GENERIC, KNOWN MOVE, FIRST PARTY | GENERIC |
+| HM REQUIREMENT | HM + BADGE, BADGE ONLY, UNRESTRICTED | HM + BADGE |
+| LIGHT MODE | MANUAL, AUTO | MANUAL |
+| CONFIRM PROMPTS | ON, OFF | ON |
+| MAP CURSOR | FREE, CLASSIC | FREE |
 
-OFF skips ordinary Cut/Surf/Strength/Whirlpool/Waterfall questions only.
-Messages, effects, unrelated story prompts and the QoL fishing menu remain.
+GENERIC uses anonymous field-move messages. KNOWN MOVE names a Pokémon that
+knows the move, falling back to GENERIC. FIRST PARTY names the first non-egg
+party member. The native action still uses a real party member internally.
 
-## Validation status
+UNRESTRICTED bypasses HM and badge checks for field moves only. It does not
+grant badges, items, maps or visited Fly destinations. CONFIRM PROMPTS OFF
+skips only ordinary contextual Cut, Surf, Strength, Whirlpool and Waterfall
+questions; Fly destination confirmation stays on.
+
+## Validation and limits
+
 
 4567 local assertions passed across all six game versions, using native engine
 Lua code with synthetic data and graphics stubs. No full ROM gameplay/visual
@@ -77,3 +90,11 @@ FREE uses native location anchors, not full route polygons. Names appear at the 
 
 **Author & Design:** rogazrok  
 **Development assistance:** ChatGPT (OpenAI)
+
+The release passed 5,107 applicable local assertions across all six games and
+strict Modkit validation and lint. It was checked against gen1recomp source snapshot
+`e2114f7c85795d52903ea98deab493a4f181bace` using automated tests with
+synthetic save data and graphics stubs. Full ROM playthrough testing is still
+recommended, especially for existing completed saves and third-party mod
+combinations. See `CHANGELOG.md` for this version's maintenance changes.
+(Release v1.1.2)

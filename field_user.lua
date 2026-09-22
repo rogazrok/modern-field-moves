@@ -22,6 +22,12 @@ return function(mod)
   local policy = {}
   function policy.unrestricted() return mod.options:get("hm_requirement") == "unrestricted" end
   function policy.confirmPrompts() return mod.options:get("confirm_prompts") ~= "off" end
+  local contextualPrompts = {
+    cut = true, surf = true, strength = true, whirlpool = true, waterfall = true,
+  }
+  function policy.confirmContext(move)
+    return not contextualPrompts[move] or policy.confirmPrompts()
+  end
   function policy.autoLight() return mod.options:get("light_mode") == "auto" end
   function policy.mode()
     local value = mod.options:get("field_move_user")
@@ -31,6 +37,14 @@ return function(mod)
 
   function policy.badgeOnly()
     return mod.options:get("hm_requirement") == "badge_only"
+  end
+
+  -- Requirement modes decide eligibility only; no HM, badge or event flag is
+  -- granted to the real save. Each generation supplies its own ownership and
+  -- badge lookup because their save formats differ.
+  function policy.hmAllowed(hasHM, hasBadge)
+    if policy.unrestricted() then return true end
+    return hasBadge and (hasHM or policy.badgeOnly()) or false
   end
 
   function policy.first(party)

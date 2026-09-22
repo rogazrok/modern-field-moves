@@ -38,6 +38,23 @@ return function(mod, installCursor)
     }))
   end
 
+  -- Both native viewers share the same input order. Keep each generation's
+  -- destination lookup separate; only cursor movement and A/B handling belong
+  -- here.
+  local function wrapMapUpdate(game, map, selectTravel)
+    local update = map.update
+    map.update = function(self, dt)
+      local input = game.input
+      if self.freeCursor and not input:wasPressed("b") then
+        if self:moveFreeCursor(input) then return end
+      end
+      if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
+        if selectTravel(self) then return end
+      end
+      return update(self, dt)
+    end
+  end
+
   function maps.red(game)
     if not maps.hasRedMap(game.save) then return end
     local map = mod.ui.push(game, "TownMap", {})
@@ -47,26 +64,18 @@ return function(mod, installCursor)
       and require("src.ui.TownMap").new(game, { fly = true })
     map.travelPoints = picker and picker.flyMapIds or {}
     installCursor(map, 1)
-    local update = map.update
-    map.update = function(self, dt)
-      local input = game.input
-      if self.freeCursor and not input:wasPressed("b") then
-        if self:moveFreeCursor(input) then return end
-      end
-      if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
-        local loc = self.freeCursor and self.hoverLocation or self.locs[self.sel]
-        for _, id in ipairs(self.travelPoints) do
-          if loc and self.byMap[id] == loc then
-            confirm(game, self, loc.name, function()
-              -- API rechecks requirements, outdoor source and visited towns.
-              return mod.world:flyTo(id)
-            end)
-            return
-          end
+    wrapMapUpdate(game, map, function(self)
+      local loc = self.freeCursor and self.hoverLocation or self.locs[self.sel]
+      for _, id in ipairs(self.travelPoints) do
+        if loc and self.byMap[id] == loc then
+          confirm(game, self, loc.name, function()
+            -- API rechecks requirements, outdoor source and visited towns.
+            return mod.world:flyTo(id)
+          end)
+          return true
         end
       end
-      return update(self, dt)
-    end
+    end)
     return map
   end
 
@@ -108,23 +117,15 @@ return function(mod, installCursor)
     })
     map.travelPoints = canTravel and points or {}
     installCursor(map, 2)
-    local update = map.update
-    map.update = function(self, dt)
-      local input = game.input
-      if self.freeCursor and not input:wasPressed("b") then
-        if self:moveFreeCursor(input) then return end
-      end
-      if game.stack:top() == self and input:wasPressed("a") and not input:wasPressed("b") then
-        local index = self:mapCursorIndex()
-        for _, row in ipairs(self.travelPoints) do
-          if row.index == index then
-            self.onFly(row.spawn)
-            return
-          end
+    wrapMapUpdate(game, map, function(self)
+      local index = self:mapCursorIndex()
+      for _, row in ipairs(self.travelPoints) do
+        if row.index == index then
+          self.onFly(row.spawn)
+          return true
         end
       end
-      return update(self, dt)
-    end
+    end)
     return true
   end
 
