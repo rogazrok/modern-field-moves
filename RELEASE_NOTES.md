@@ -25,5 +25,5 @@ Manual in-game smoke testing was also completed for the merged release build.
 Automated and manual smoke testing cannot cover every possible save state or
 third-party mod combination.
 
-Update through MODS, disable the separate Gen3 test prototype, and apply a
-restart. Existing main-mod settings remain under the same ID.
+Automated and manual smoke testing cannot cover every possible save state or third-party mod combination.
+Update through MODS and apply a restart.
