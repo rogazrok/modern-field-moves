@@ -1,100 +1,132 @@
-# Modern Field Moves v1.1.2
+# Modern Field Moves v1.2.0
 
-Modern Field Moves brings modern HM mechanics to Pokémon Red, Blue, Yellow,
-Gold, Silver and Crystal on gen1recomp while keeping the games' classic feel.
-Field moves work without teaching them to a Pokémon. The default requirement
-remains the appropriate HM and badge.
+**Modern Field Moves — modern HM mechanics with the classic Pokémon feel.**
 
-## Installation and updates
+HM and field-move QoL for Pokémon Red, Blue, Yellow, Gold, Silver, Crystal,
+FireRed and LeafGreen on gen1recomp. Field moves do not need to occupy a
+Pokémon's battle moveslot. The default progression requirement remains the
+appropriate HM and badge.
 
+## Install or update
 
-## ⚠️ Compatibility & Testing Notice
+Import `modern_field_moves-v1.2.0.zip` with **MODS → Import mod .zip**, enable
+Modern Field Moves for your game, then use **APPLY & RESTART**. For manual
+installation, replace the contents of `mods/surf_without_hm_red/` with the
+files in the ZIP. Keep that folder name and mod ID: `surf_without_hm_red`.
 
-Modern Field Moves modifies field-move logic and interacts with parts of the game's world and progression systems.
+Disable/remove the separate `modern_field_moves_gen3_test` prototype before
+using this release. Do not enable both implementations together. Settings
+from v1.1.x retain their existing namespace; the prototype's separate settings
+are not imported automatically. Existing saves do not need a new game.
 
-The mod has been tested in all supported games, including new and existing save files, but it has not been exhaustively tested across every story event or edge case.
+Use a current gen1recomp build with API 2 and native FRLG Game3 support.
+The mod requires `engine_internals`. The source used for automated validation
+is recorded below; this does not identify the version installed on your device.
+After updating from an older build, restart the game completely if the launcher
+cannot apply the update with **APPLY & RESTART**.
 
-Compatibility with other mods has also not been extensively tested. Mods that modify field moves, the START menu, Town Map / Pokégear map, Flash/lighting, world interactions, or related game logic may conflict with Modern Field Moves.
+## Supported field moves
 
-Keeping a backup of your save file is recommended when using mods.
+| Games | Moves |
+| --- | --- |
+| Red / Blue / Yellow | Cut, Fly, Surf, Strength, Flash |
+| Gold / Silver / Crystal | Cut, Fly, Surf, Strength, Flash, Whirlpool, Waterfall |
+| FireRed / LeafGreen | Cut, Fly, Surf, Strength, Flash, Rock Smash, Waterfall |
 
-If you encounter a bug, please report it through GitHub Issues and include:
-- game/version;
-- gen1recomp version;
-- other installed mods;
-- what happened and how to reproduce it.
+Cut, Surf, Strength, Whirlpool, Rock Smash and Waterfall use the original
+world interactions where available. Their native effects, sounds, boarding,
+movement and travel animations remain in the engine.
 
-## Install / update
+**LIGHT** appears only in an actual Flash-compatible dark area while Flash is
+available. It disappears after illumination. AUTO lights eligible darkness
+once; it does not repeatedly apply Flash each frame. Crystal's Aerodactyl wall
+remains a separate explicit FLASH interaction and is never opened by AUTO.
+Manual LIGHT still presents the action as FLASH.
 
-Import `modern_field_moves-v1.1.2.zip` through **MODS → Import mod .zip**,
-enable the mod for your game, and restart the game. To install manually,
-place the `surf_without_hm_red` folder in gen1recomp's `mods` folder.
-Keep this folder name and mod ID when updating: they preserve existing settings.
-Existing game saves do not need to be restarted. The mod requires API 2 and
-the `engine_internals` permission.
- (Release v1.1.2)
+## Settings and presentation
 
-## Field moves and maps
+| Setting | Choices | Default | Applies to |
+| --- | --- | --- | --- |
+| FIELD MOVE USER | GENERIC / KNOWN MOVE | GENERIC | All games |
+| HM REQUIREMENT | HM + BADGE / BADGE ONLY / UNRESTRICTED | HM + BADGE | All games |
+| LIGHT MODE | MANUAL / AUTO | MANUAL | All games |
+| CONFIRM PROMPTS | ON / OFF | ON | All games |
+| MAP CURSOR | FREE / CLASSIC | FREE | Gen 1 / Gen 2 |
+| CROSS-REGION FLY | VANILLA / ENABLED | VANILLA | FireRed / LeafGreen |
 
-Cut, Surf and Strength are contextual interactions. Gold, Silver and Crystal
-also support Whirlpool and Waterfall. Fly is part of the map, not a separate
-START item. RBY's TOWN MAP appears after obtaining Daisy's Town Map; G/S/C's
-MAP appears after obtaining the Pokégear Map Card. Both maps can be browsed
-before Fly is unlocked. Fly requires the selected HM requirement and still
-uses the game's visited-destination restrictions and a YES/NO confirmation.
+GENERIC does not present a Pokémon name or Pokémon intro. KNOWN MOVE uses a
+Pokémon that actually knows the particular move and retains the game's native
+presentation. If nobody knows it, the action falls back to GENERIC without an
+intro. FRLG's Pokémon splash follows this rule for field moves and Fly. Gen 1/2
+retain their original presentation rather than gaining a new FRLG-style splash.
+Native world animations remain visible in both modes. FRLG Surf omits the
+redundant extra "SURF was used!" dialog after boarding.
 
-The MAP CURSOR setting offers FREE (four-direction cursor, default) and
-CLASSIC (native location cycling). FREE names locations at their native
-landmark anchors; empty map cells have no name. B exits the map.
+FIRST PARTY is no longer a selectable option in any game. A stored v1.1.x
+`first_party` value is normalized to `known_move` in live and persistent
+options, including stored profiles, when the mod initializes or receives the
+old value again. Other preferences and vanilla save data are preserved.
+There is no FIELD MOVE INTRO setting.
 
-LIGHT appears only in dark areas and disappears after illumination. AUTO
-lights ordinary dark areas when available. Crystal's Aerodactyl wall remains
-a separate, explicit FLASH interaction and is never triggered by AUTO.
+UNRESTRICTED bypasses only HM/badge requirements. It does not grant maps,
+items, badges, visited destinations, tickets or story progression, and it
+does not bypass location or destination restrictions.
 
-## Settings
+CONFIRM PROMPTS OFF skips ordinary contextual Cut, Surf, Strength, Whirlpool,
+Rock Smash and Waterfall questions as applicable. Fly destination confirmation
+always stays enabled. Ferry choices, story prompts and NPC dialog are unaffected.
+Manual LIGHT does not add another confirmation question.
 
-| Setting | Choices | Default |
-| --- | --- | --- |
-| FIELD MOVE USER | GENERIC, KNOWN MOVE, FIRST PARTY | GENERIC |
-| HM REQUIREMENT | HM + BADGE, BADGE ONLY, UNRESTRICTED | HM + BADGE |
-| LIGHT MODE | MANUAL, AUTO | MANUAL |
-| CONFIRM PROMPTS | ON, OFF | ON |
-| MAP CURSOR | FREE, CLASSIC | FREE |
+The settings menu shows MAP CURSOR only in Gen 1/2 and CROSS-REGION FLY only
+in FireRed/LeafGreen. Previously stored values remain untouched when their
+setting is hidden in another game. FRLG always uses its native Gen3 cursor.
 
-GENERIC uses anonymous field-move messages. KNOWN MOVE names a Pokémon that
-knows the move, falling back to GENERIC. FIRST PARTY names the first non-egg
-party member. The native action still uses a real party member internally.
+## Maps and Fly
 
-UNRESTRICTED bypasses HM and badge checks for field moves only. It does not
-grant badges, items, maps or visited Fly destinations. CONFIRM PROMPTS OFF
-skips only ordinary contextual Cut, Surf, Strength, Whirlpool and Waterfall
-questions; Fly destination confirmation stays on.
+Map ownership is independent of Fly requirements:
 
-## Validation and limits
+- RBY **TOWN MAP** appears after receiving Daisy's real Town Map. The receipt
+  flag and Bag/PC ownership support old saves and deposited maps.
+- G/S/C **MAP** appears after receiving the Pokégear Map Card.
+- FRLG **TOWN MAP** requires the real key item in the Bag or PC.
 
+These entries open ordinary browse maps before Fly is available. Unlocking Fly
+adds travel to visited, native-valid destinations on the same map. Browsing a
+route, cave or landmark does not make it a Fly destination. Every flight asks
+YES/NO over the open map. NO or B retains the current map selection.
 
-4567 local assertions passed across all six game versions, using native engine
-Lua code with synthetic data and graphics stubs. No full ROM gameplay/visual
-playthrough was performed. Gold/Silver manual acceptance testing is pending.
-The build is versioned 1.0.0; do not interpret this as completed in-game QA.
-Tested against gen1recomp dev e2114f7c85795d52903ea98deab493a4f181bace.
-Future internal engine changes may require an adapter update.
+Gen 1/2 FREE is a four-direction cursor; CLASSIC retains native location
+cycling. FREE uses native landmark anchors; empty cells have no label.
 
-See README_RU.md, MANUAL_CHECKLIST_RU.md and RELEASE_REPORT_RU.md for details.
+FRLG retains native labels, cities, routes, caves, landmarks, cursor and
+Kanto/available Sevii pages. Fly wings are hidden. A selects an eligible Fly
+destination; SELECT opens a native GUIDE preview where available. Where GUIDE
+is unavailable, SELECT retains the native close action. B leaves the preview
+or map. The right shoulder keeps its normal speed control. With a Town Map
+owned, party-menu Fly also opens the combined browse/travel map, preserving
+the explicitly selected Pokémon. Without it, the native Fly screen remains.
 
-FREE uses native location anchors, not full route polygons. Names appear at the markers; blank cells have no label. Coordinate-less caches fall back to CLASSIC. The setting takes effect on next map open. No full ROM visual validation was performed.
+CROSS-REGION FLY VANILLA keeps the engine's regional restriction. ENABLED
+permits Kanto ↔ Sevii travel only between visited native Fly destinations after
+the first mandatory Sevii detour and Bill's return scene are complete. It never
+opens islands or changes ferry/pass/story flags. Native map-page availability
+and destination checks still apply. UNRESTRICTED does not bypass these gates.
 
-1.1.1 fixes missing Kanto labels/Fly selection in FREE when HALL_OF_FAME is absent. Full-region hit-testing is independent from the native CLASSIC scroll range. Visited-flight restrictions are unchanged.
+## Validation and remaining manual coverage
 
-## Credits
+Automated regression passed separately for all eight games against official
+gen1recomp source revision `7cfd79d0e94e7cd32ccd721e9acae9a1c462c0ef`.
+Strict Modkit validate, strict Gen3 checker and lint passed. The suite covers
+requirements, presentation/fallback, prompts, lighting, maps, migration,
+wrapper re-init/reset, logical flag differentials and native FRLG execution
+with synchronous visual/movement fixtures.
 
-**Author & Design:** rogazrok  
-**Development assistance:** ChatGPT (OpenAI)
+These are source-based tests with synthetic save data, not a new eight-game
+ROM playthrough or a comparison of real cartridge save bytes. Manual in-game
+smoke testing was also completed for the merged release build, including the
+main FRLG field-move, map, Fly and progression flows.
 
-The release passed 5,107 applicable local assertions across all six games and
-strict Modkit validation and lint. It was checked against gen1recomp source snapshot
-`e2114f7c85795d52903ea98deab493a4f181bace` using automated tests with
-synthetic save data and graphics stubs. Full ROM playthrough testing is still
-recommended, especially for existing completed saves and third-party mod
-combinations. See `CHANGELOG.md` for this version's maintenance changes.
-(Release v1.1.2)
+Automated and manual smoke tests cannot cover every possible save state or
+third-party mod combination. Keeping a backup of your save is recommended.
+No ROM, save, imported cache, test runner or test log is included in the
+install package.

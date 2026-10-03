@@ -1,6 +1,6 @@
 -- Shared Gold/Silver/Crystal adapter. Native A-button interactions already
 -- implement Cut, Surf, Strength, Whirlpool and Waterfall with their prompts.
-return function(mod, policy, townMap, installLighting)
+return function(mod, policy, townMap, installLighting, scope, edition)
   local FieldMoves = require("src.world.gen2.FieldMoves")
   local StartMenu = require("src.ui.gen2.StartMenu")
   local items = {
@@ -24,7 +24,7 @@ return function(mod, policy, townMap, installLighting)
       FieldMoves.hasBadge(save, FieldMoves.BADGE[move]))
   end
 
-  local light = installLighting(mod, policy, 2, unlocked)
+  local light = installLighting(mod, policy, 2, unlocked, edition)
 
   mod.hooks:wrap("fieldmove.eligibility", function(next, moveId, ctx)
     local mon, slot = next(moveId, ctx)
@@ -38,14 +38,12 @@ return function(mod, policy, townMap, installLighting)
   local World = require("src.world.gen2.World")
   -- Debug/cheat mode affects only HM decisions. Never grant actual badges:
   -- native story scripts, trainer cards and save records see the real state.
-  local function shallowCopy(source)
-    local out = {}; for k, v in pairs(source or {}) do out[k] = v end; return out
-  end
+  local shallowCopy = policy.common.copy
   local function badgeContext(ctx, move)
     -- A copied save branch gives native eligibility its required badge. The
     -- synthetic badge never enters the real save, even if native code errors.
     local scoped = shallowCopy(ctx)
-    scoped.save = shallowCopy(ctx.save)
+    scoped.save = shallowCopy(ctx and ctx.save)
     scoped.save.player = shallowCopy(scoped.save.player)
     scoped.save.player.badges = shallowCopy(scoped.save.player.badges)
     scoped.save.player.badges[FieldMoves.BADGE[move]] = true
@@ -56,55 +54,90 @@ return function(mod, policy, townMap, installLighting)
     for _, method in ipairs({ move:lower() .. "FromMenu", "try" .. title .. "OW" }) do
       local original = FieldMoves[method]
       if original then
-        FieldMoves[method] = function(ctx, ...)
-          -- The shared engine exposes Crystal's wall callback in G/S too.
-          -- Gold/Silver Flash only illuminates darkness; never set Crystal events.
-          if move == "FLASH" and require("src.core.GameVersion").get() ~= "crystal" then
-            ctx = shallowCopy(ctx)
-            ctx.openAerodactylWall = nil
+        scope.wrap(FieldMoves, method, function(original)
+          return function(ctx, ...)
+            -- Gold/Silver only illuminate darkness; Crystal owns this puzzle.
+            if move == "FLASH" and not edition.flashPuzzle then
+              ctx = shallowCopy(ctx)
+              ctx.openAerodactylWall = nil
+            end
+            if not policy.unrestricted() then return original(ctx, ...) end
+            return original(badgeContext(ctx, move), ...)
           end
-          if not policy.unrestricted() then return original(ctx, ...) end
-          return original(badgeContext(ctx, move), ...)
-        end
+        end)
         if method == move:lower() .. "FromMenu" then
-          FieldMoves.FROM_MENU[move] = FieldMoves[method]
+          scope.wrap(FieldMoves.FROM_MENU, move, function()
+            return FieldMoves[method]
+          end)
         end
       end
     end
   end
-  local originalOverworld = World.runOverworldFieldMove
-  World.runOverworldFieldMove = function(world, result)
-    if result and result.ok and not policy.confirmContext(result.action) then
-      result = shallowCopy(result)
-      result.ask = nil
+  scope.wrap(World, "runOverworldFieldMove", function(originalOverworld)
+    return function(world, result)
+      if result and result.ok and not policy.confirmContext(result.action) then
+        result = shallowCopy(result)
+        result.ask = nil
+      end
+      return originalOverworld(world, result)
     end
-    return originalOverworld(world, result)
-  end
-  local originalUse = World.useFieldMove
-  World.useFieldMove = function(world, move, mon)
-    -- Crystal's party menu otherwise trusts a learned move and bypasses the
-    -- eligibility hook. Apply the same selected requirement on that route.
-    if items[move] and world.map and world.player and not world.battleActive
-        and not world:busy() and not unlocked(world.game.save, move) then
-      local text = not FieldMoves.hasBadge(world.game.save, FieldMoves.BADGE[move])
-        and FieldMoves.TEXT.BADGE_REQUIRED or "An HM is required\nto use this."
-      world:showText(text)
-      return { ok = false, text = text }
+  end)
+  -- The party menu queues successful *Function results directly; unlike the
+  -- A-button Try*OW route, these results do not carry an `ask` field. Route
+  -- only the contextual HMs through the native ask/yes-no flow before running
+  -- them. Fly, Flash, and unrelated story prompts keep their existing paths.
+  local menuPrompts = {
+    cut = FieldMoves.TEXT.ASK_CUT,
+    surf = FieldMoves.TEXT.ASK_SURF,
+    strength = FieldMoves.TEXT.ASK_STRENGTH,
+    whirlpool = FieldMoves.TEXT.ASK_WHIRLPOOL,
+    waterfall = FieldMoves.TEXT.ASK_WATERFALL,
+  }
+  scope.wrap(World, "runQueuedFieldMove", function(originalQueued)
+    return function(world, ...)
+      local queued = world.queuedFieldMove
+      local action = queued and queued.action
+      local ask = action and menuPrompts[action]
+      if queued and queued.ok and ask and not world:busy()
+          and policy.confirmContext(action) then
+        local confirmed = shallowCopy(queued)
+        confirmed.ask = confirmed.ask or ask
+        confirmed.took = true
+        world.queuedFieldMove = nil
+        return world:runOverworldFieldMove(confirmed)
+      end
+      return originalQueued(world, ...)
     end
-    return originalUse(world, move, mon)
-  end
-  local originalRun = World.runFieldMove
-  World.runFieldMove = function(world, result)
-    local move = result and type(result.action) == "string" and result.action:upper()
-    if not items[move] or move == "FLY" then return originalRun(world, result) end
-    -- Copy the action, not the Pokemon. Preserve every native effect parameter
-    -- and delayed callback; only the presentation and chosen user change.
-    local presented = shallowCopy(result)
-    presented.mon = policy.user(world.game.save.party, move)
-    presented.text = policy.message(world.game, move)
-    if move == "STRENGTH" then presented.after = policy.boulders(world.game) end
-    return originalRun(world, presented)
-  end
+  end)
+  scope.wrap(World, "useFieldMove", function(originalUse)
+    return function(world, move, mon)
+      -- The party menu trusts learned moves and bypasses the eligibility hook.
+      -- Apply the same selected requirement on that route.
+      if items[move] and world.map and world.player and not world.battleActive
+          and not world:busy() and not unlocked(world.game.save, move) then
+        local text = not FieldMoves.hasBadge(world.game.save, FieldMoves.BADGE[move])
+          and FieldMoves.TEXT.BADGE_REQUIRED or "An HM is required\nto use this."
+        world:showText(text)
+        return { ok = false, text = text }
+      end
+      return originalUse(world, move, mon)
+    end
+  end)
+  scope.wrap(World, "runFieldMove", function(originalRun)
+    return function(world, result)
+      local move = result and type(result.action) == "string" and result.action:upper()
+      if not items[move] or move == "FLY" then return originalRun(world, result) end
+      -- Preserve native effect parameters and delayed callbacks. These effects
+      -- use mon only for the nickname buffer and Strength cry. Suppress identity
+      -- in GENERIC/fallback while keeping the native resolver's real actor.
+      local presented = shallowCopy(result)
+      presented.mon = policy.mode() == "known_move"
+        and policy.known(world.game.save.party, move) or nil
+      presented.text = policy.message(world.game, move)
+      if move == "STRENGTH" then presented.after = policy.boulders(world.game) end
+      return originalRun(world, presented)
+    end
+  end)
 
   local function useFromStart(game, move)
     -- Gen 2, unlike Gen 1, keeps START open before calling onSelect.

@@ -1,37 +1,73 @@
--- Shared options and presentation policy. Never write to party/save records.
+-- Shared options and presentation policy. Only our own legacy option migrates;
+-- party records and vanilla progression are never modified.
 return function(mod)
-  mod.options:define({
-    { key = "field_move_user", type = "choice", label = "FIELD MOVE USER",
-      default = "generic", choices = {
-        { "GENERIC", "generic" }, { "KNOWN MOVE", "known_move" },
-        { "FIRST PARTY", "first_party" },
-      } },
-    { key = "hm_requirement", type = "choice", label = "HM REQUIREMENT",
-      default = "hm_badge", choices = {
-        { "HM + BADGE", "hm_badge" }, { "BADGE ONLY", "badge_only" },
-        { "UNRESTRICTED", "unrestricted" },
-      } },
-    { key = "light_mode", type = "choice", label = "LIGHT MODE",
-      default = "manual", choices = { { "MANUAL", "manual" }, { "AUTO", "auto" } } },
-    { key = "confirm_prompts", type = "choice", label = "CONFIRM PROMPTS",
-      default = "on", choices = { { "ON", "on" }, { "OFF", "off" } } },
-    { key = "map_cursor", type = "choice", label = "MAP CURSOR",
-      default = "free", choices = { { "FREE", "free" }, { "CLASSIC", "classic" } } },
-  })
+  local compile = loadstring or load
+  local common = assert(compile(assert(mod:read("common.lua")),
+    "@" .. mod.path .. "/common.lua"))()
+  mod.options:define(assert(compile(assert(mod:read("options_schema.lua")),
+    "@" .. mod.path .. "/options_schema.lua"))())
 
-  local policy = {}
+  local policy = { common = common }
+  -- The only legacy user mode is normalized here. Runtime policy sees the
+  -- same two choices that the current options screen exposes.
+  local function normalizeUserChoice(value)
+    return value == "first_party" and "known_move" or value
+  end
   function policy.unrestricted() return mod.options:get("hm_requirement") == "unrestricted" end
   function policy.confirmPrompts() return mod.options:get("confirm_prompts") ~= "off" end
   local contextualPrompts = {
-    cut = true, surf = true, strength = true, whirlpool = true, waterfall = true,
+    cut = true, surf = true, strength = true, rock_smash = true,
+    whirlpool = true, waterfall = true,
   }
   function policy.confirmContext(move)
+    if type(move) == "string" then
+      move = move:lower():gsub("[%s%-]+", "_")
+      if move == "rocksmash" then move = "rock_smash" end
+    end
     return not contextualPrompts[move] or policy.confirmPrompts()
   end
   function policy.autoLight() return mod.options:get("light_mode") == "auto" end
+  function policy.crossRegionFly()
+    return mod.options:get("cross_region_fly") == "enabled" and "enabled" or "vanilla"
+  end
+  -- Only our own option value changes. Never touch vanilla progression.
+  -- Loader and the options file can own distinct buckets on older saves.
+  function policy.migrateOptions(game)
+    if not game then return end
+    local changed = false
+    local function migrate(options)
+      local bucket = options and options[mod.id]
+      if bucket and bucket.field_move_user ~= normalizeUserChoice(bucket.field_move_user) then
+        bucket.field_move_user = normalizeUserChoice(bucket.field_move_user)
+        changed = true
+      end
+    end
+    migrate(game.mods and game.mods.modOptions)
+    migrate(game.options and game.options.modOptions)
+    migrate(game.save and game.save.options and game.save.options.modOptions)
+    local function profiles(options)
+      for _, profile in ipairs(options and options.modProfiles or {}) do migrate(profile.options) end
+    end
+    profiles(game.options)
+    profiles(game.save and game.save.options)
+    if changed and type(game.writeOptions) == "function" then game:writeOptions() end
+  end
+  policy.migrateOptions(mod.game)
+  local game = mod.game
+  local ready = mod.events:on("game.ready", function(ctx)
+    game = ctx and ctx.game
+    policy.migrateOptions(game)
+  end)
+  local changed = mod.events:on("mod.options_changed", function(ctx)
+    if ctx and ctx.mod == mod.id then policy.migrateOptions(game) end
+  end)
+  function policy.dispose()
+    if type(ready) == "function" then ready() end
+    if type(changed) == "function" then changed() end
+  end
   function policy.mode()
-    local value = mod.options:get("field_move_user")
-    if value == "known_move" or value == "first_party" then return value end
+    local value = normalizeUserChoice(mod.options:get("field_move_user"))
+    if value == "known_move" then return "known_move" end
     return "generic"
   end
 
@@ -47,39 +83,16 @@ return function(mod)
     return hasBadge and (hasHM or policy.badgeOnly()) or false
   end
 
-  function policy.first(party)
-    for index, mon in ipairs(party or {}) do
-      if not mon.egg then return mon, index end
-    end
-  end
-
-  function policy.known(party, move)
-    for index, mon in ipairs(party or {}) do
-      if not mon.egg then
-        for _, entry in ipairs(mon.moves or {}) do
-          local id = type(entry) == "table" and entry.id or entry
-          if id == move then return mon, index end
-        end
-      end
-    end
-  end
-
-  -- GENERIC still supplies a real mon to the native animation code; it is
-  -- never named in the text. Preserve native species-dependent rendering.
-  function policy.user(party, move)
-    if policy.mode() ~= "first_party" then
-      local mon, index = policy.known(party, move)
-      if mon then return mon, index end
-    end
-    return policy.first(party)
-  end
+  policy.first = common.first
+  policy.known = common.known
+  -- A mechanical actor is retained even when presentation is anonymous.
+  policy.user = common.actor
 
   function policy.name(game, move)
     local party = game and game.save and game.save.party
     local mode = policy.mode()
     local mon
-    if mode == "known_move" then mon = policy.known(party, move)
-    elseif mode == "first_party" then mon = policy.first(party) end
+    if mode == "known_move" then mon = policy.known(party, move) end
     if not mon then return nil end
     local species = game.data and game.data.pokemon and game.data.pokemon[mon.species]
     return mon.nickname or mon.name or (species and species.name) or mon.species
@@ -100,7 +113,6 @@ return function(mod)
   -- Give that synchronous call a temporary catalog, retaining the original
   -- text terminator and restoring the catalog even if another mod throws.
   -- Delayed callbacks already hold their strings (including Strength's tail).
-  local function pack(...) return { n = select("#", ...), ... } end
   function policy.withTexts(game, replacements, fn, ...)
     local original = game.data.text
     local catalog = {}
@@ -111,11 +123,7 @@ return function(mod)
       if ending ~= "{DONE}" and ending ~= "{PROMPT}" then ending = "" end
       catalog[key] = value .. ending
     end
-    game.data.text = catalog
-    local result = pack(pcall(fn, ...))
-    game.data.text = original
-    if not result[1] then error(result[2], 0) end
-    return unpack(result, 2, result.n)
+    return common.withValue(game.data, "text", catalog, fn, ...)
   end
 
   return policy

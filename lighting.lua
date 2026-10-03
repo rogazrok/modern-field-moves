@@ -1,4 +1,4 @@
-return function(mod, policy, generation, unlocked)
+return function(mod, policy, generation, unlocked, edition)
   local light = {}
   local Palettes, UnownWords
   if generation == 2 then
@@ -9,7 +9,7 @@ return function(mod, policy, generation, unlocked)
     return game and (generation == 2 and game.world or game.overworld)
   end
   local function chamber(world)
-    return generation == 2 and require("src.core.GameVersion").get() == "crystal" and world and world.map
+    return generation == 2 and edition and edition.flashPuzzle and world and world.map
       and world.map.id == UnownWords.CHAMBER_MAPS.AERODACTYL
   end
   function light.special(game)
