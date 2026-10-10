@@ -71,7 +71,6 @@ return function(mod)
       elseif direction=="right" then dx=step
       elseif direction=="up" then dy=-step
       elseif direction=="down" then dy=step end
-      if dx==0 and dy==0 then return false end
       local minX,maxX,minY,maxY=0,15,0,15
       if generation==2 then
         minX,maxX,minY,maxY=8,152,24,136

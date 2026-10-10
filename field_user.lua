@@ -17,7 +17,7 @@ return function(mod)
   function policy.confirmPrompts() return mod.options:get("confirm_prompts") ~= "off" end
   local contextualPrompts = {
     cut = true, surf = true, strength = true, rock_smash = true,
-    whirlpool = true, waterfall = true,
+    whirlpool = true, waterfall = true, dive = true,
   }
   function policy.confirmContext(move)
     if type(move) == "string" then
@@ -114,9 +114,7 @@ return function(mod)
   -- text terminator and restoring the catalog even if another mod throws.
   -- Delayed callbacks already hold their strings (including Strength's tail).
   function policy.withTexts(game, replacements, fn, ...)
-    local original = game.data.text
-    local catalog = {}
-    for key, value in pairs(original or {}) do catalog[key] = value end
+    local catalog = common.copy(game.data.text)
     for key, value in pairs(replacements) do
       local old = catalog[key]
       local ending = type(old) == "string" and old:match("({[A-Z]+})%s*$")

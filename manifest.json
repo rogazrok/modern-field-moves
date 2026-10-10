@@ -1,7 +1,7 @@
 {
   "id": "surf_without_hm_red",
   "name": "Modern Field Moves",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -14,7 +14,10 @@
     "silver",
     "crystal",
     "firered",
-    "leafgreen"
+    "leafgreen",
+    "emerald",
+    "ruby",
+    "sapphire"
   ],
   "permissions": [
     "engine_internals"

@@ -23,12 +23,13 @@ local schema = {
 
 -- The menu has no per-game visibility rule. Select the applicable row when
 -- the active game's schema is loaded; stored values for other games remain.
-if require("src.core.GameVersion").generation() == 3 then
+local version = require("src.core.GameVersion")
+if version.get() == "firered" or version.get() == "leafgreen" then
   schema[#schema + 1] = { key = "cross_region_fly", type = "choice",
     label = "CROSS-REGION FLY", default = "vanilla", choices = {
       { "VANILLA", "vanilla" }, { "ENABLED", "enabled" },
     } }
-else
+elseif version.generation() ~= 3 then
   schema[#schema + 1] = { key = "map_cursor", type = "choice", label = "MAP CURSOR",
     default = "free", choices = { { "FREE", "free" }, { "CLASSIC", "classic" } } }
 end

@@ -1,29 +1,42 @@
-# Modern Field Moves v1.2.0
+# Modern Field Moves v1.3.0
 
-- Added FireRed and LeafGreen support alongside Red, Blue, Yellow, Gold,
-  Silver and Crystal, retaining the `surf_without_hm_red` mod ID.
-- Added native Gen3 Cut, Surf, Strength, Flash/LIGHT, Rock Smash and Waterfall.
-- Integrated FRLG TOWN MAP and Fly: browse full native regional maps, retain
-  map labels and available Sevii pages, and confirm travel over the open map.
-  Fixed an issue where selecting a Fly city could close the confirmation and
-  leave the map unresponsive.
-- Preserved Sevii progression restrictions. CROSS-REGION FLY defaults to
-  VANILLA; ENABLED permits travel between already available native points
-  after the mandatory Sevii detour and Bill return scene, without granting
-  tickets, destinations or story flags.
-- Simplified FIELD MOVE USER to GENERIC / KNOWN MOVE in every supported game.
-  Existing FIRST PARTY preferences migrate to KNOWN MOVE. Genuine learners
-  retain native presentation; missing learners fall back to anonymous actions.
-- MOD OPTIONS shows MAP CURSOR only in Gen 1/2 and CROSS-REGION FLY only in
-  FireRed/LeafGreen; saved values are retained when hidden.
-- Improved shared policy and temporary-state restoration, reduced duplicate
-  selection helpers, and added owned Gen1/2 wrapper teardown/re-init handling.
-  Retained FRLG lifecycle, anonymous Fly Quest Log and Fly error-cleanup fixes.
+Modern Field Moves now supports Emerald, Ruby and Sapphire alongside Red,
+Blue, Yellow, Gold, Silver, Crystal, FireRed and LeafGreen.
 
-All eight source-based regression targets and strict Modkit checks passed.
-Manual in-game smoke testing was also completed for the merged release build.
-Automated and manual smoke testing cannot cover every possible save state or
-third-party mod combination.
+## Hoenn field moves and Dive
 
-Automated and manual smoke testing cannot cover every possible save state or third-party mod combination.
-Update through MODS and apply a restart.
+Use Cut, Surf, Strength, Flash/LIGHT, Rock Smash, Waterfall, Fly and Dive
+without reserving battle moveslots for HMs. Dive and surfacing use the game's
+original underwater routes and terrain restrictions. HM + BADGE remains the
+default requirement, with BADGE ONLY and UNRESTRICTED available in the settings.
+
+AUTO LIGHT illuminates ordinary caves without solving Emerald's Registeel
+Flash puzzle. Ruby and Sapphire keep their original Regi puzzle requirements.
+
+## Fly from PokéNav and Pokégear
+
+In Hoenn, SELECT offers Fly from the PokéNav map at eligible destinations,
+while A keeps zoom and B returns. Confirming a flight closes the menus and
+starts takeoff without an extra button press.
+
+In Gold, Silver and Crystal, Fly is part of the Pokégear Map Card. The duplicate
+MAP entry in START is removed. Browse the tabs with left/right, press A to
+enter the map and use the FREE cursor in all four directions. Press B to
+return to the tabs. Phone and radio remain available, and leaving an untuned
+radio frequency now restores the map music.
+
+Fly always asks for confirmation over the map. Choosing NO keeps the map open.
+Only valid, visited and available destinations can be selected.
+
+## Familiar settings and progression
+
+GENERIC uses anonymous field-move presentation. KNOWN MOVE shows a Pokémon
+that actually knows the move; otherwise it falls back to GENERIC.
+
+CONFIRM PROMPTS controls ordinary field-move questions, including Dive.
+Fly, story and ferry confirmations remain enabled. MAP CURSOR is available
+in Gen 1/2; CROSS-REGION FLY remains exclusive to FireRed/LeafGreen and respects
+Sevii story restrictions.
+
+This update also improves field-move stability while preserving the original
+world effects, animations and progression requirements.

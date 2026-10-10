@@ -26,6 +26,19 @@ return function(mod, policy, townMap, installLighting, scope, edition)
 
   local light = installLighting(mod, policy, 2, unlocked, edition)
 
+  -- Adapt only the real device, not native party Fly or scripted map viewers.
+  scope.wrap(require("src.ui.gen2.Pokegear"), "new", function(native)
+    return function(game, opts)
+      local gear = native(game, opts)
+      if not gear.fly and not gear.townMap and game and game.world then
+        townMap.gen2(game, game.world, policy.user(game.save.party, "FLY"), function()
+          return scope.active and unlocked(game.save, "FLY") and policy.first(game.save.party) ~= nil
+        end, gear, function() return scope.active end)
+      end
+      return gear
+    end
+  end)
+
   mod.hooks:wrap("fieldmove.eligibility", function(next, moveId, ctx)
     local mon, slot = next(moveId, ctx)
     if not items[moveId] then return mon, slot end
@@ -36,7 +49,7 @@ return function(mod, policy, townMap, installLighting, scope, edition)
   end)
 
   local World = require("src.world.gen2.World")
-  -- Debug/cheat mode affects only HM decisions. Never grant actual badges:
+  -- UNRESTRICTED affects only HM decisions. Never grant actual badges:
   -- native story scripts, trainer cards and save records see the real state.
   local shallowCopy = policy.common.copy
   local function badgeContext(ctx, move)
@@ -148,11 +161,6 @@ return function(mod, policy, townMap, installLighting, scope, edition)
     local world = game.world
     if not world or not world:acceptsMenuInput() then return end
     if move == "LIGHT" then return light.manual(game) end
-    if move == "FLY" then
-      return townMap.gen2(game, world, policy.user(game.save.party, "FLY"), function()
-        return unlocked(game.save, "FLY") and policy.first(game.save.party) ~= nil
-      end)
-    end
     if not unlocked(game.save, move) then return end
     local mon = FieldMoves.partyMoveUser(game.save.party, move,
       { save = game.save, data = game.data })
@@ -166,15 +174,13 @@ return function(mod, policy, townMap, installLighting, scope, edition)
   mod.hooks:wrap("ui.start_menu.items", function(next, game, rows)
     local out = next(game, rows)
     if type(out) ~= "table" then return out end
-    for _, move in ipairs({ "FLY", "LIGHT", "FLASH" }) do
-      if (move == "FLY" and townMap.hasGen2Map(game))
-          or (move == "LIGHT" and light.visible(game))
+    for _, move in ipairs({ "LIGHT", "FLASH" }) do
+      if (move == "LIGHT" and light.visible(game))
           or (move == "FLASH" and light.special(game) and unlocked(game.save, move) and policy.first(game.save.party)) then
         mod.ui.insertBefore(out, "SAVE", {
           -- Crystal allows seven label tiles and ten per description line.
-          label = move == "FLY" and "MAP" or move,
-          desc = move == "FLY" and { "View the", "map." }
-            or (move == "LIGHT" and { "Light the", "cave." } or { "Use FLASH", "here." }),
+          label = move,
+          desc = move == "LIGHT" and { "Light the", "cave." } or { "Use FLASH", "here." },
           onSelect = function() useFromStart(game, move) end,
         })
       end

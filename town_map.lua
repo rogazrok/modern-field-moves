@@ -79,17 +79,18 @@ return function(mod, installCursor)
     return map
   end
 
-  function maps.gen2(game, world, mon, unlocked)
+  function maps.gen2(game, world, mon, unlocked, gear, active)
     if not maps.hasGen2Map(game) then return false end
     local FieldMoves = require("src.world.gen2.FieldMoves")
     local points = world:flyPoints()
     local canTravel = #points > 0 and unlocked() and mon ~= nil
       and world:acceptsMenuInput() and FieldMoves.flyFromMenu(world:fieldContext(mon)).ok
     local map
-    map = mod.ui.push(game, "Gen2Pokegear", {
+    local opts = {
       save = game.save, currentLandmark = world:currentLandmarkId(),
       townMap = true,
       onFly = function(spawn)
+        if active and not active() then return end
         if not canTravel or not map or game.stack:top() ~= map then return end
         for _, row in ipairs(points) do
           if row.spawn == spawn then
@@ -103,7 +104,14 @@ return function(mod, installCursor)
               -- flyTo alone resolves a spawn; validate against the current
               -- native region/visited list again before starting its animation.
               for _, current in ipairs(world:flyPoints()) do
-                if current.spawn == spawn then return world:flyTo(spawn, user) end
+                if current.spawn == spawn then
+                  -- Normal Pokégear sits above START. Confirmed travel closes
+                  -- that parent; ordinary browsing/cancel keeps native return.
+                  local parent = game.stack:top()
+                  if gear and getmetatable(parent) == require("src.ui.gen2.StartMenu") then parent:close() end
+                  map:stopRadio()
+                  return world:flyTo(spawn, user)
+                end
               end
               return false
             end)
@@ -114,9 +122,16 @@ return function(mod, installCursor)
       onClose = function()
         if map and game.stack:top() == map then game.stack:pop() end
       end,
-    })
+    }
+    if gear then
+      map = gear
+      map.onFly = opts.onFly
+    else
+      map = mod.ui.push(game, "Gen2Pokegear", opts)
+    end
     map.travelPoints = canTravel and points or {}
     installCursor(map, 2)
+    local nativeUpdate = map.update
     wrapMapUpdate(game, map, function(self)
       local index = self:mapCursorIndex()
       for _, row in ipairs(self.travelPoints) do
@@ -126,6 +141,64 @@ return function(mod, installCursor)
         end
       end
     end)
+    if gear then
+      local stopRadio, switchCard, close = map.stopRadio, map.switchCard, map.onClose
+      -- Native strip paging can preview/tune radio without passing through its
+      -- exit handler. Every device transition must release that radio state.
+      map.stopRadio = function(self)
+        local playing = self.radioMusicPlaying
+        stopRadio(self)
+        if active() and (playing == "enterMap" or playing == "restartMap") then
+          -- Resolve native map/SpecialMapMusic/Surf policy rather than assuming
+          -- the map header's raw music field is a directly playable song.
+          world:playMapMusic()
+        end
+      end
+      map.switchCard = function(self, ...)
+        if not active() then return switchCard(self, ...) end
+        self:stopRadio()
+        local changed = switchCard(self, ...)
+        if changed then self.mode = "strip" end
+        return changed
+      end
+      map.onClose = function(...)
+        if active() then map:stopRadio() end
+        if close then return close(...) end
+      end
+      local mapUpdate = map.update
+      map.update = function(self, dt)
+        if not active() then return nativeUpdate(self, dt) end
+        local input = game.input
+        if not input then return nativeUpdate(self, dt) end
+        -- Previewing any tab never enters it. In particular, native PHONE's
+        -- strip shortcut must not auto-enter and pass arrows on to MAP.
+        if self.mode == "strip" then
+          self.iconTimer = ((self.iconTimer or 0) + 1) % 32
+          local direction = input:wasPressed("left") and -1 or input:wasPressed("right") and 1
+          if direction then
+            self:stopRadio()
+            self.cardIndex = ((self.cardIndex - 1 + direction) % #self.cards) + 1
+          elseif input:wasPressed("b") then
+            if self.onClose then self.onClose() end
+          elseif input:wasPressed("a") then
+            self.mode = "card"
+          end
+          return
+        end
+        local card = self:card()
+        local phoneBusy = card and card.id == "phone" and (self.call or self.phoneSubmenu)
+        if not phoneBusy and input:wasPressed("b") then
+          self:stopRadio()
+          self.mode = "strip"
+          self.cursorHeld, self.cursorTicks = nil, 0
+          return
+        end
+        if self.mode ~= "card" or not card or card.id ~= "map" then
+          return nativeUpdate(self, dt)
+        end
+        return mapUpdate(self, dt)
+      end
+    end
     return true
   end
 

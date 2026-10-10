@@ -7,6 +7,7 @@ return function(mod)
   local supported = {
     red = true, blue = true, yellow = true, gold = true, silver = true,
     crystal = true, firered = true, leafgreen = true,
+    emerald = true, ruby = true, sapphire = true,
   }
   assert(supported[version.get()], "Modern Field Moves: unsupported game")
   local scope

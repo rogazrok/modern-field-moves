@@ -1,132 +1,168 @@
-# Modern Field Moves v1.2.0
+# Modern Field Moves v1.3.0
 
-**Modern Field Moves — modern HM mechanics with the classic Pokémon feel.**
+**Modern HM mechanics with the classic Pokémon feel.**
 
-HM and field-move QoL for Pokémon Red, Blue, Yellow, Gold, Silver, Crystal,
-FireRed and LeafGreen on gen1recomp. Field moves do not need to occupy a
-Pokémon's battle moveslot. The default progression requirement remains the
-appropriate HM and badge.
+Use field moves without reserving battle moveslots for HMs. Modern Field Moves
+supports Pokémon Red, Blue, Yellow, Gold, Silver, Crystal, FireRed, LeafGreen,
+Emerald, Ruby and Sapphire in gen1recomp.
 
-## Install or update
+By default, you still need the appropriate HM and badge. The original field
+animations, sounds, terrain requirements and story progression are preserved.
 
-Import `modern_field_moves-v1.2.0.zip` with **MODS → Import mod .zip**, enable
-Modern Field Moves for your game, then use **APPLY & RESTART**. For manual
-installation, replace the contents of `mods/surf_without_hm_red/` with the
-files in the ZIP. Keep that folder name and mod ID: `surf_without_hm_red`.
+## New in v1.3.0
 
-Disable/remove the separate `modern_field_moves_gen3_test` prototype before
-using this release. Do not enable both implementations together. Settings
-from v1.1.x retain their existing namespace; the prototype's separate settings
-are not imported automatically. Existing saves do not need a new game.
-
-Use a current gen1recomp build with API 2 and native FRLG Game3 support.
-The mod requires `engine_internals`. The source used for automated validation
-is recorded below; this does not identify the version installed on your device.
-After updating from an older build, restart the game completely if the launcher
-cannot apply the update with **APPLY & RESTART**.
+- Emerald, Ruby and Sapphire support, including Dive and surfacing.
+- Fly directly from the PokéNav map in Hoenn while retaining normal map browsing
+  and zoom.
+- Fly directly from the Pokégear Map Card in Gold, Silver and Crystal, without
+  a duplicate MAP entry in START.
+- Pokégear tab browsing with explicit A-to-enter and B-to-return controls,
+  including a four-direction FREE map cursor.
+- Correct music restoration when leaving a silent Pokégear radio frequency.
+- Confirmed PokéNav flights close START automatically, with no extra B press.
+- AUTO LIGHT illuminates ordinary caves without solving the Regi puzzles.
 
 ## Supported field moves
 
-| Games | Moves |
+| Games | Field moves |
 | --- | --- |
 | Red / Blue / Yellow | Cut, Fly, Surf, Strength, Flash |
 | Gold / Silver / Crystal | Cut, Fly, Surf, Strength, Flash, Whirlpool, Waterfall |
 | FireRed / LeafGreen | Cut, Fly, Surf, Strength, Flash, Rock Smash, Waterfall |
+| Emerald / Ruby / Sapphire | Cut, Fly, Surf, Strength, Flash, Rock Smash, Waterfall, Dive |
 
-Cut, Surf, Strength, Whirlpool, Rock Smash and Waterfall use the original
-world interactions where available. Their native effects, sounds, boarding,
-movement and travel animations remain in the engine.
+Interact with the relevant tree, water, boulder or rock to use an available
+field move. The Pokémon menu remains available for its usual field actions.
 
-**LIGHT** appears only in an actual Flash-compatible dark area while Flash is
-available. It disappears after illumination. AUTO lights eligible darkness
-once; it does not repeatedly apply Flash each frame. Crystal's Aerodactyl wall
-remains a separate explicit FLASH interaction and is never opened by AUTO.
-Manual LIGHT still presents the action as FLASH.
+## Settings
 
-## Settings and presentation
-
-| Setting | Choices | Default | Applies to |
+| Setting | Choices | Default | Games |
 | --- | --- | --- | --- |
-| FIELD MOVE USER | GENERIC / KNOWN MOVE | GENERIC | All games |
-| HM REQUIREMENT | HM + BADGE / BADGE ONLY / UNRESTRICTED | HM + BADGE | All games |
-| LIGHT MODE | MANUAL / AUTO | MANUAL | All games |
-| CONFIRM PROMPTS | ON / OFF | ON | All games |
-| MAP CURSOR | FREE / CLASSIC | FREE | Gen 1 / Gen 2 |
+| FIELD MOVE USER | GENERIC / KNOWN MOVE | GENERIC | All |
+| HM REQUIREMENT | HM + BADGE / BADGE ONLY / UNRESTRICTED | HM + BADGE | All |
+| LIGHT MODE | MANUAL / AUTO | MANUAL | All |
+| CONFIRM PROMPTS | ON / OFF | ON | All |
+| MAP CURSOR | FREE / CLASSIC | FREE | Red / Blue / Yellow / Gold / Silver / Crystal |
 | CROSS-REGION FLY | VANILLA / ENABLED | VANILLA | FireRed / LeafGreen |
 
-GENERIC does not present a Pokémon name or Pokémon intro. KNOWN MOVE uses a
-Pokémon that actually knows the particular move and retains the game's native
-presentation. If nobody knows it, the action falls back to GENERIC without an
-intro. FRLG's Pokémon splash follows this rule for field moves and Fly. Gen 1/2
-retain their original presentation rather than gaining a new FRLG-style splash.
-Native world animations remain visible in both modes. FRLG Surf omits the
-redundant extra "SURF was used!" dialog after boarding.
+Only settings relevant to the current game appear in MOD OPTIONS.
 
-FIRST PARTY is no longer a selectable option in any game. A stored v1.1.x
-`first_party` value is normalized to `known_move` in live and persistent
-options, including stored profiles, when the mod initializes or receives the
-old value again. Other preferences and vanilla save data are preserved.
-There is no FIELD MOVE INTRO setting.
+### FIELD MOVE USER
 
-UNRESTRICTED bypasses only HM/badge requirements. It does not grant maps,
-items, badges, visited destinations, tickets or story progression, and it
-does not bypass location or destination restrictions.
+**GENERIC** uses the action without showing a Pokémon name or Pokémon intro.
 
-CONFIRM PROMPTS OFF skips ordinary contextual Cut, Surf, Strength, Whirlpool,
-Rock Smash and Waterfall questions as applicable. Fly destination confirmation
-always stays enabled. Ferry choices, story prompts and NPC dialog are unaffected.
-Manual LIGHT does not add another confirmation question.
+**KNOWN MOVE** shows the Pokémon's name and original presentation when it knows
+the move being used. If nobody in the party knows that move, the action uses
+GENERIC presentation. For example, a Pokémon that knows Cut can appear for Cut
+while Surf remains anonymous if nobody knows Surf.
 
-The settings menu shows MAP CURSOR only in Gen 1/2 and CROSS-REGION FLY only
-in FireRed/LeafGreen. Previously stored values remain untouched when their
-setting is hidden in another game. FRLG always uses its native Gen3 cursor.
+World effects and travel animations remain visible in both modes. Pokémon
+intros follow each game's original presentation; older games do not gain a
+newer game's splash animation.
+
+### HM REQUIREMENT
+
+- **HM + BADGE:** requires the appropriate HM and badge.
+- **BADGE ONLY:** requires the badge, without requiring the HM.
+- **UNRESTRICTED:** removes the HM and badge requirements.
+
+These settings do not grant items, badges, maps, tickets or story progress.
+Terrain restrictions still apply, and Fly remains limited to valid, visited
+and available destinations from locations where flight is allowed.
+
+### CONFIRM PROMPTS
+
+**ON** keeps the usual confirmation questions for contextual field moves.
+**OFF** skips them for Cut, Surf, Strength, Whirlpool, Rock Smash, Waterfall
+and Dive/surfacing where applicable.
+
+Fly always asks for confirmation. Story choices, NPC dialogue and ferry
+questions are unaffected.
+
+### LIGHT MODE
+
+**MANUAL** adds LIGHT to START when you can use Flash in a dark area. LIGHT
+disappears once the area is illuminated.
+
+**AUTO** illuminates eligible dark areas automatically, without repeatedly
+using Flash after the area is lit.
+
+Puzzle actions remain deliberate: Crystal's Aerodactyl wall requires its
+separate FLASH action. Emerald's Ancient Tomb puzzle requires Flash from the
+Pokémon menu at the correct position. AUTO LIGHT does not solve either puzzle.
+Ruby and Sapphire retain their original Regi puzzle requirements.
 
 ## Maps and Fly
 
-Map ownership is independent of Fly requirements:
+Maps remain useful for browsing before Fly becomes available. Routes, caves
+and landmarks keep their names; only eligible Fly destinations offer travel.
+Flight confirmation appears over the open map. Choosing NO or cancelling the
+question keeps your map selection so you can choose somewhere else.
 
-- RBY **TOWN MAP** appears after receiving Daisy's real Town Map. The receipt
-  flag and Bag/PC ownership support old saves and deposited maps.
-- G/S/C **MAP** appears after receiving the Pokégear Map Card.
-- FRLG **TOWN MAP** requires the real key item in the Bag or PC.
+### Red, Blue and Yellow
 
-These entries open ordinary browse maps before Fly is available. Unlocking Fly
-adds travel to visited, native-valid destinations on the same map. Browsing a
-route, cave or landmark does not make it a Fly destination. Every flight asks
-YES/NO over the open map. NO or B retains the current map selection.
+TOWN MAP appears in START after receiving the Town Map. Depositing it in the
+PC does not remove access. Select an eligible visited destination and press
+A to choose Fly.
 
-Gen 1/2 FREE is a four-direction cursor; CLASSIC retains native location
-cycling. FREE uses native landmark anchors; empty cells have no label.
+**FREE** moves the cursor in four directions. **CLASSIC** cycles through map
+locations. Empty FREE cursor positions do not select a nearby destination.
 
-FRLG retains native labels, cities, routes, caves, landmarks, cursor and
-Kanto/available Sevii pages. Fly wings are hidden. A selects an eligible Fly
-destination; SELECT opens a native GUIDE preview where available. Where GUIDE
-is unavailable, SELECT retains the native close action. B leaves the preview
-or map. The right shoulder keeps its normal speed control. With a Town Map
-owned, party-menu Fly also opens the combined browse/travel map, preserving
-the explicitly selected Pokémon. Without it, the native Fly screen remains.
+### Gold, Silver and Crystal
 
-CROSS-REGION FLY VANILLA keeps the engine's regional restriction. ENABLED
-permits Kanto ↔ Sevii travel only between visited native Fly destinations after
-the first mandatory Sevii detour and Bill's return scene are complete. It never
-opens islands or changes ferry/pass/story flags. Native map-page availability
-and destination checks still apply. UNRESTRICTED does not bypass these gates.
+Use the map inside Pokégear after receiving the Map Card. There is no separate
+MAP entry in START.
 
-## Validation and remaining manual coverage
+- Left/right on the upper tabs previews the available cards.
+- A enters the selected card.
+- On the map, FREE uses all four directions; CLASSIC cycles through locations
+  with up/down and retains left/right card switching.
+- A on an eligible visited destination opens the Fly question.
+- B returns to the upper tabs. B again closes Pokégear.
 
-Automated regression passed separately for all eight games against official
-gen1recomp source revision `7cfd79d0e94e7cd32ccd721e9acae9a1c462c0ef`.
-Strict Modkit validate, strict Gen3 checker and lint passed. The suite covers
-requirements, presentation/fallback, prompts, lighting, maps, migration,
-wrapper re-init/reset, logical flag differentials and native FRLG execution
-with synchronous visual/movement fixtures.
+Phone calls and submenus handle B before returning to tab selection. Clock,
+phone and radio remain available. Leaving a silent radio frequency restores
+map music; a tuned station can continue playing according to the game's usual
+radio behavior.
 
-These are source-based tests with synthetic save data, not a new eight-game
-ROM playthrough or a comparison of real cartridge save bytes. Manual in-game
-smoke testing was also completed for the merged release build, including the
-main FRLG field-move, map, Fly and progression flows.
+### FireRed and LeafGreen
 
-Automated and manual smoke tests cannot cover every possible save state or
-third-party mod combination. Keeping a backup of your save is recommended.
-No ROM, save, imported cache, test runner or test log is included in the
-install package.
+TOWN MAP appears in START when you own the Town Map. Browse Kanto and available
+Sevii pages with the original map cursor, names and landmarks, without flashing
+Fly wing markers.
+
+A selects an eligible Fly destination. SELECT opens GUIDE details where
+available; elsewhere it retains the map's normal SELECT action. B closes the
+details or map. The right shoulder button keeps its normal speed control.
+
+With a Town Map, selecting Fly from the Pokémon menu also opens this combined
+map. Without one, the original Fly screen remains available.
+
+**CROSS-REGION FLY = VANILLA** keeps the original travel restrictions.
+**ENABLED** allows travel between Kanto and Sevii after the mandatory first
+Sevii visit and Bill's return sequence are complete. Destinations must still
+be visited and available. This option does not unlock islands or replace their
+story requirements, even with UNRESTRICTED enabled.
+
+### Emerald, Ruby and Sapphire
+
+Use the map inside PokéNav once it becomes available in the story. No separate
+TOWN MAP entry is added to START.
+
+- A keeps the original zoom function.
+- SELECT offers Fly over an eligible visited destination.
+- B returns from the map.
+
+The map's help bar shows when Fly is available. Confirming a flight closes
+PokéNav and START before takeoff. The original Pokémon-menu Fly map also
+remains available, with destination confirmation.
+
+## Dive in Hoenn
+
+Interact with a diveable tile while Surfing to descend. Underwater, use the
+usual interaction to surface where permitted. Dive also remains available
+from the Pokémon menu.
+
+HM08 and the Mind Badge are required by default. BADGE ONLY and UNRESTRICTED
+change those requirements, while valid diving locations, underwater routes
+and surfacing restrictions remain the same.

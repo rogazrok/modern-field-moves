@@ -1,10 +1,11 @@
--- FireRed / LeafGreen adapter. Game3 still executes the native
+-- Native Gen3 adapter for FRLG and RSE. Game3 still executes the native
 -- world effects after the mod's field-move and map decisions.
 return function(mod, policy)
   local GameVersion = require("src.core.GameVersion")
   local version = GameVersion.get()
-  assert(version == "firered" or version == "leafgreen",
-    "Modern Field Moves Gen 3 adapter requires FireRed or LeafGreen")
+  local rse = version == "emerald" or version == "ruby" or version == "sapphire"
+  assert(rse or version == "firered" or version == "leafgreen",
+    "Modern Field Moves: unsupported Gen3 edition")
 
   local FieldMoves = require("src.core.game3.field_moves")
   local Field = require("src.core.game3.field")
@@ -34,24 +35,17 @@ return function(mod, policy)
   -- before installing closures from this version.
   local state = FieldMoves._modernFieldMovesGen3 or FieldMoves._modernFieldMovesGen3Test
   if state and state.teardown then state.teardown() end
-  if not state then
-    state = {
-      prompts = setmetatable({}, { __mode = "k" }),
-      hookOwners = setmetatable({}, { __mode = "k" }),
-    }
-    FieldMoves._modernFieldMovesGen3 = state
-  end
+  state = state or {}
   FieldMoves._modernFieldMovesGen3 = state
   FieldMoves._modernFieldMovesGen3Test = nil
-  -- 0.0.12 has no teardown contract. A normal soft restart evicts Game3/UI
-  -- modules before loading this adapter. Refuse unsafe in-place replacement of
-  -- an old module table instead of stacking over its opaque closures.
+  -- Legacy modules without teardown require a soft restart. Do not stack
+  -- new wrappers over unowned closures retained by an older module table.
   assert(not state.directInstalled and not state.mapInputInstalled,
     "Modern Field Moves update requires APPLY & RESTART")
   local previousGuideText = RomText.overrides[SELECT_GUIDE_TEXT]
   local guideText = TextIR.fromAscii("SEL GUIDE")
   state.prompts = setmetatable({}, { __mode = "k" })
-  state.hookOwners = setmetatable({}, { __mode = "k" })
+  state.hookOwners = nil -- Retire the legacy hook cache; teardown owns hooks now.
   state.activeTownMap = nil
   state.flyPromptContext = nil
   state.policy = policy
@@ -66,6 +60,8 @@ return function(mod, policy)
     owner[key] = wrapped
   end
   local function currentPolicy() return state.policy end
+  local hookRemovers = {}
+  local rseAdapter
 
   local CAPABILITIES = {
     CUT = { hm = 1, method = "tryCutOW" },
@@ -76,6 +72,7 @@ return function(mod, policy)
     ROCK_SMASH = { hm = 6, method = "tryRockSmashOW" },
     WATERFALL = { hm = 7, method = "tryWaterfallOW" },
   }
+  if rse then CAPABILITIES.DIVE = { hm = 8 } end
   local function session() return Runtime.getSession() end
 
   -- Read the real TM Case and PC slots without calling Bag.has(), whose
@@ -98,7 +95,7 @@ return function(mod, policy)
   end
 
   local function hasBadge(s, move)
-    local id = FieldMoves.BADGE_FLAGS[move]
+    local id = FieldMoves.badgeFlag(move)
     local store = Space.store or { flags = (s and s.flags) or {} }
     return Flags.getFlag(store, nil, id)
   end
@@ -143,7 +140,7 @@ return function(mod, policy)
         or type(Space.store) == "table" and Space.store
         or { flags = (s and s.flags) or {} }
       out.store = copy(originalStore)
-      out.store.flags = setmetatable({ [FieldMoves.BADGE_FLAGS[move]] = true },
+      out.store.flags = setmetatable({ [FieldMoves.badgeFlag(move)] = true },
         { __index = type(originalStore.flags) == "table" and originalStore.flags or {} })
     end
     return out
@@ -182,7 +179,7 @@ return function(mod, policy)
   end
 
   local function hasTownMap(s)
-    if not s then return false end
+    if rse or not s then return false end
     local bag = s.bag and s.bag.pockets
     local townMapId = Items.toNumericId("TOWN_MAP")
     return townMapId ~= nil and (contains(bag and bag.KEY_ITEMS, townMapId)
@@ -222,7 +219,7 @@ return function(mod, policy)
     local ctx = nativeContext({ session = s, store = Space.store,
       party = s.party, mapType = def.mapType }, "FLY", mon)
     local ok, result = pcall(FieldMoves.flyFromMenu, ctx)
-    return ok and result and result.ok == true or false
+    return ok and result and result.ok == true and result.action == "fly" or false
   end
 
   -- These are the native switch/cancel button cells in region_map.lua. The
@@ -352,6 +349,7 @@ return function(mod, policy)
       if not yes then closeFlyPrompt(context); return end
       local selected = context.promptSelection
       closeFlyPrompt(context)
+      if context.onConfirmed then context.onConfirmed(); return end
       if not selected then return end
       context.pendingFly = selected.section
       context.targetRegion = selected.region
@@ -403,7 +401,7 @@ return function(mod, policy)
 
   -- Map input and field execution have separate ownership slots; teardown
   -- restores both before a fresh generation installs its closures.
-  if not state.mapInputInstalled then
+  if not rse and not state.mapInputInstalled then
     local nativeHandleMapInput = RegionMap.handleInput
     local function guideInput(input, activateGuide, suppressGuide)
       if not (activateGuide or suppressGuide) then return input end
@@ -458,14 +456,12 @@ return function(mod, policy)
     return function(ctx)
       if not generation.active then return original(ctx) end
       local s = (ctx and ctx.session) or session()
-      if not (s and unlocked(s, move)) then
-        -- Keep all native context so special map behavior still runs.
-        local unavailable = copy(ctx)
-        unavailable.party = {}
-        return original(unavailable)
+      local mon, slot
+      if s and unlocked(s, move) then
+        mon, slot = actor((ctx and ctx.party) or s.party, move)
       end
-      local mon, slot = actor((ctx and ctx.party) or s.party, move)
       if not mon then
+        -- Keep all native context so special map behavior still runs.
         local unavailable = copy(ctx)
         unavailable.party = {}
         return original(unavailable)
@@ -496,11 +492,8 @@ return function(mod, policy)
       return originalShow(text, ...)
     end)
 
-    for _, spec in ipairs({ { "tryCutOW", "CUT" },
-        { "tryRockSmashOW", "ROCK_SMASH" },
-        { "tryStrengthOW", "STRENGTH" }, { "trySurfOW", "SURF" },
-        { "tryWaterfallOW", "WATERFALL" } }) do
-      local name, move = spec[1], spec[2]
+    for _, move in ipairs({ "CUT", "ROCK_SMASH", "STRENGTH", "SURF", "WATERFALL" }) do
+      local name = CAPABILITIES[move].method
       local original = FieldMoves[name]
       installDirect(FieldMoves, name, wrapContextual(original, move))
     end
@@ -513,7 +506,8 @@ return function(mod, policy)
       if not generation.active then return nativeShowMonStart(mon, opts, onDone) end
       local skipFly = state.skipFlyIntroMon and state.skipFlyIntroMon == mon
       if skipFly then state.skipFlyIntroMon = nil end
-      if (state.activeFieldMove and not state.showFieldMoveIntro) or skipFly then
+      local skipRse = state.rseIntro and state.rseIntro(mon)
+      if (state.activeFieldMove and not state.showFieldMoveIntro) or skipFly or skipRse then
         if type(onDone) == "function" then onDone() end
         return true
       end
@@ -527,6 +521,8 @@ return function(mod, policy)
     installDirect(Field, "flyTo", function(section, mon, ...)
       if not generation.active then return nativeFlyTo(section, mon, ...) end
       local previousLock = Field.locked
+      local previousLocks = rse and copy(Field._locks)
+      local previousHold = rse and Field._holdInput
       state.skipFlyIntroMon = not presentsKnownMove("FLY", mon) and mon or nil
       -- Native flight needs the real actor for its animation. Only its
       -- synchronous Quest Log event receives the anonymous presentation.
@@ -546,7 +542,12 @@ return function(mod, policy)
         state.skipFlyIntroMon = nil
       end
       if not result[1] then
-        Field.locked = previousLock
+        if rse then
+          Field._locks = previousLocks
+          Field.holdInput(previousHold)
+        else
+          Field.locked = previousLock
+        end
         if state.flyPromptContext then closeFlyPrompt(state.flyPromptContext) end
         state.activeTownMap, state.flyPromptContext = nil, nil
         error(result[2], 0)
@@ -575,10 +576,12 @@ return function(mod, policy)
         return nativeExecute(payload, ...)
       end
       local previousActive, previousIntro = state.activeFieldMove, state.showFieldMoveIntro
+      local previousLocks = rse and copy(Field._locks)
+      local previousHold = rse and Field._holdInput
       state.activeFieldMove = true
       state.showFieldMoveIntro = payload._mfmShowIntro == true
       local executePayload = payload
-      if payload._mfmGeneric then
+      if payload._mfmGeneric and not rse then
         executePayload = copy(payload)
         -- The native executor only needs a Pokémon for its ShowMon/quest text;
         -- GENERIC skips ShowMon and the native log's neutral fallback is POKéMON.
@@ -586,7 +589,14 @@ return function(mod, policy)
       end
       local result = policy.common.pack(pcall(nativeExecute, executePayload, ...))
       state.activeFieldMove, state.showFieldMoveIntro = previousActive, previousIntro
-      if not result[1] then error(result[2], 0) end
+      if not result[1] then
+        if rse then
+          if rseAdapter then rseAdapter.clear() end
+          Field._locks = previousLocks
+          Field.holdInput(previousHold)
+        end
+        error(result[2], 0)
+      end
       return unpack(result, 2, result.n)
     end)
 
@@ -596,7 +606,7 @@ return function(mod, policy)
     installDirect(FieldMoves, "fromMenu", function(moveId, ctx)
       if not generation.active then return nativeFromMenu(moveId, ctx) end
       local move = FieldMoves.MOVE_NAME_BY_ID[FieldMoves.normalizeMoveId(moveId)]
-      if not (CAPABILITIES[move] and (CAPABILITIES[move].method or move == "FLASH")) then
+      if not (CAPABILITIES[move] and (CAPABILITIES[move].method or move == "FLASH" or rse and (move == "DIVE" or move == "FLY"))) then
         return nativeFromMenu(moveId, ctx)
       end
       local s = (ctx and ctx.session) or session()
@@ -608,6 +618,13 @@ return function(mod, policy)
         mon = actor((ctx and ctx.party) or s.party, move)
       end
       if not mon then return { ok = false, text = FieldMoves.TEXT.CANT_USE_HERE } end
+      if move == "DIVE" then
+        local Player = require("src.core.game3.player")
+        local Dive = require("src.core.game3.dive")
+        if not Dive.isUnderwaterMap(Map.currentDef()) and not Player.surfing then
+          return { ok = false, text = FieldMoves.TEXT.CANT_USE_HERE }
+        end
+      end
       return presentResult(nativeFromMenu(moveId, nativeContext(ctx, move, mon)),
         move, mon)
     end)
@@ -615,6 +632,9 @@ return function(mod, policy)
   end
 
   local function dark(s)
+    -- Emerald Registeel Flash is an explicit puzzle action, never LIGHT.
+    -- Do not even poll its resolver: the native predicate arms puzzle state.
+    if version == "emerald" and s and s.map == "EM_ANCIENT_TOMB" then return false end
     return s and Field.running and (tonumber(FieldView.getFlashLevel()) or 0) > 0
       and not Flags.getFlag(Space.store or { flags = s.flags }, nil,
         FieldMoves.SYS_FLAGS.FLASH_ACTIVE)
@@ -624,16 +644,17 @@ return function(mod, policy)
     if not (dark(s) and unlocked(s, "FLASH")) then return nil end
     local mon = actor(s.party, "FLASH")
     if not mon then return nil end
-    return FieldMoves.fromMenu("FLASH", {
+    local result = FieldMoves.fromMenu("FLASH", {
       party = s.party, mon = mon, session = s, store = Space.store,
       isCave = true, isDarkCave = true,
     })
+    return result and result.ok and result.action == "flash" and result or nil
   end
 
   local function useLight(s, automatic)
     if Field.locked or not Runtime.isActive() then return false end
     local result = lightResult(s)
-    if not (result and result.ok) then return false end
+    if not (result and result.ok and result.action == "flash") then return false end
     if automatic then
       result = copy(result)
       result.text = nil
@@ -642,10 +663,6 @@ return function(mod, policy)
     return true
   end
 
-  if state.hookOwners[mod.hooks] then return end
-  state.hookOwners[mod.hooks] = true
-
-  local hookRemovers = {}
   hookRemovers[#hookRemovers + 1] = mod.hooks:wrap("ui.start_menu.items", function(next, game, rows)
     if not generation.active then return next(game, rows) end
     local out = next(game, rows)
@@ -704,8 +721,8 @@ return function(mod, policy)
   -- APPLY & RESTART and title exit call Game3:reset. Restore exact native
   -- function slots before the next loader decides whether this mod is enabled.
   local nativeReset, nativeReturnToTitle = Game3.reset, Game3.returnToTitle
-  local resetWrapper, titleWrapper
   local function clearTransient()
+    if rseAdapter then rseAdapter.clear() end
     if state.flyPromptContext then closeFlyPrompt(state.flyPromptContext) end
     if state.activeTownMap then state.activeTownMap.pendingFly = nil end
     state.activeTownMap, state.flyPromptContext = nil, nil
@@ -733,18 +750,27 @@ return function(mod, policy)
     state.directInstalled, state.mapInputInstalled = nil, nil
     state.teardown = nil
   end
-  resetWrapper = function(self, ...)
+  installDirect(Game3, "reset", function(self, ...)
     teardown()
     return nativeReset(self, ...)
-  end
-  titleWrapper = function(self, ...)
+  end)
+  installDirect(Game3, "returnToTitle", function(self, ...)
     clearTransient()
     return nativeReturnToTitle(self, ...)
-  end
-  installDirect(Game3, "reset", resetWrapper)
-  installDirect(Game3, "returnToTitle", titleWrapper)
+  end)
   state.teardown = teardown
-  RomText.overrides[SELECT_GUIDE_TEXT] = guideText
+  if not rse then RomText.overrides[SELECT_GUIDE_TEXT] = guideText end
+
+  if rse then
+    local compile = loadstring or load
+    local initRse = assert(compile(assert(mod:read("gen3_rse.lua")),
+      "@" .. mod.path .. "/gen3_rse.lua"))()
+    rseAdapter = initRse({ mod = mod, state = state, generation = generation,
+      install = installDirect, hooks = hookRemovers, policy = currentPolicy,
+      actor = actor, unlocked = unlocked, copy = copy,
+      generic = function(move, mon) return not presentsKnownMove(move, mon) end,
+      intro = presentsKnownMove, nativeCanFly = nativeCanFly, prompt = showFlyPrompt })
+  end
 
   -- Native field execution owns CUT object removal, ROCK SMASH encounters,
   -- STRENGTH/FLASH system flags, SURF boarding, WATERFALL movement and the
